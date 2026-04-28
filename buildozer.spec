@@ -7,14 +7,14 @@ source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3
 source.main = main.py
 version = 0.1
 
-# Вимоги: Pygame та конкретна версія Cython для стабільності
+# Додано конкретну версію Cython для стабільності Pygame
 requirements = python3,pygame==2.5.2,cython==0.29.33
 
 orientation = landscape
 fullscreen = 1
 android.permissions = INTERNET
 
-# Налаштування версій Android для максимальної сумісності
+# Параметри Android
 android.api = 31
 android.minapi = 21
 android.ndk = 25b
