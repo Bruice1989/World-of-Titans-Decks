@@ -1,12 +1,12 @@
 name: Build Android APK
-on: 
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    env:
+      # Це прибере попередження про Node.js 20/24
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -27,20 +27,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git python3 python3-dev ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev
-          sudo apt-get install -y libgstreamer1.0-gstreamer-lite1.0-dev libgstreamer-plugins-base1.0-dev
           pip install --user --upgrade Cython==0.29.33 buildozer
 
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Видаляємо старі файли збірки, щоб уникнути помилок через залишки минулих спроб
+          # Видаляємо стару папку, якщо вона є
           rm -rf .buildozer/
-          # Автоматично погоджуємося на всі ліцензії та запускаємо збірку з детальним логом
-          yes | buildozer -v android debug
-        continue-on-error: false
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorldOfTitansAPK
-          path: bin/*.apk
+          # yes | змушує прийняти всі ліцензії, а --verbose покаже нам справжню причину, якщо впаде
+          yes | buildozer --verbose android debug
