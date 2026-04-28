@@ -4,10 +4,6 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
-    env:
-      # Це прибере попередження про Node.js 20/24
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,7 +28,10 @@ jobs:
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # Видаляємо стару папку, якщо вона є
+          # Очищаємо шляхи до NDK, які нав'язує GitHub
+          unset ANDROID_NDK_HOME
+          unset ANDROID_NDK_ROOT
+          unset ANDROID_NDK
+          
           rm -rf .buildozer/
-          # yes | змушує прийняти всі ліцензії, а --verbose покаже нам справжню причину, якщо впаде
-          yes | buildozer --verbose android debug
+          yes | buildozer -v android debug
