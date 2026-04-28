@@ -38,10 +38,30 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
           echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
 
+      - name: Accept Android SDK licenses (system SDK)
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "build-tools;33.0.2" \
+            "platforms;android-31" 2>/dev/null || true
+
       - name: Clear old Buildozer cache
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
+
+      - name: Point Buildozer to system Android SDK
+        run: |
+          # Buildozer шукає SDK в ~/.buildozer — зробимо симлінк на системний
+          mkdir -p ~/.buildozer/android/platform
+          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
+          # Також приймаємо ліцензії в системному SDK
+          mkdir -p $ANDROID_HOME/licenses
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
+            > $ANDROID_HOME/licenses/android-sdk-license
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
+            > $ANDROID_HOME/licenses/android-sdk-preview-license
 
       - name: Install Buildozer + Cython
         run: |
@@ -49,20 +69,6 @@ jobs:
           pip install Cython==0.29.37
           pip install buildozer==1.5.0
           pip install python-for-android==2024.1.21
-
-      - name: Pre-accept Android SDK licenses for Buildozer SDK path
-        run: |
-          # Buildozer SDK шлях — саме сюди він завантажує свій SDK
-          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
-          mkdir -p "$BUILDOZER_SDK/licenses"
-          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
-            > "$BUILDOZER_SDK/licenses/android-sdk-license"
-          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
-            > "$BUILDOZER_SDK/licenses/android-sdk-preview-license"
-          printf "\nd975f751698a77b662f1254ddbeed3901e976f5a" \
-            > "$BUILDOZER_SDK/licenses/intel-android-extra-license"
-          echo "Ліцензії записано в $BUILDOZER_SDK/licenses/"
-          ls -la "$BUILDOZER_SDK/licenses/"
 
       - name: Build APK (debug)
         run: |
