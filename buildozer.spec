@@ -9,7 +9,7 @@ source.main = main.py
 
 version = 0.1
 
-requirements = python3,pygame==2.1.3,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
+requirements = python3,pygame==2.1.2,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
 
 orientation = landscape
 fullscreen = 1
