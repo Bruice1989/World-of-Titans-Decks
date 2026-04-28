@@ -1,18 +1,14 @@
 name: Build Android APK
-
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-22.04
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,28 +36,16 @@ jobs:
 
       - name: Setup Android SDK for Buildozer
         run: |
-          # Приймаємо всі ліцензії
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-
-          # Встановлюємо потрібні компоненти
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "build-tools;33.0.2" \
             "platforms;android-31" 2>/dev/null || true
-
-          # ⚠️ Створюємо папку tools/bin і симлінк на sdkmanager
-          # Buildozer шукає саме tools/bin/sdkmanager
           mkdir -p $ANDROID_HOME/tools/bin
           ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
                  $ANDROID_HOME/tools/bin/sdkmanager
           ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager \
                  $ANDROID_HOME/tools/bin/avdmanager
-
-          # Перевірка
-          echo "sdkmanager знайдено:"
-          ls -la $ANDROID_HOME/tools/bin/sdkmanager
-
-          # Приймаємо ліцензії в системному SDK
           mkdir -p $ANDROID_HOME/licenses
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
             > $ANDROID_HOME/licenses/android-sdk-license
@@ -85,7 +69,15 @@ jobs:
           pip install buildozer==1.5.0
           pip install python-for-android==2024.1.21
 
+      - name: Set Gradle JVM memory
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+
       - name: Build APK (debug)
+        env:
+          GRADLE_OPTS: "-Xmx4g"
         run: |
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
@@ -94,6 +86,14 @@ jobs:
       - name: Show last 100 lines of build log
         if: always()
         run: tail -100 logs/build.log || echo "Лог не знайдено"
+
+      - name: Find and copy APK
+        if: always()
+        run: |
+          echo "=== Шукаємо .apk ==="
+          find . -name "*.apk" 2>/dev/null || echo "APK не знайдено"
+          mkdir -p bin
+          find .buildozer -name "*.apk" -exec cp {} bin/ \; 2>/dev/null || true
 
       - name: Upload FULL build log
         if: always()
