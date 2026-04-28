@@ -22,8 +22,8 @@ source.main = main.py
 version = 0.1
 
 # (list) Application requirements
-# Вказуємо конкретну версію pygame, яка стабільно працює на Android
-requirements = python3,pygame==2.5.2,pillow
+# Залишаємо базовий набір для стабільності
+requirements = python3,pygame==2.5.2
 
 # (str) Supported orientation (landscape, portrait or all)
 orientation = landscape
@@ -34,8 +34,8 @@ fullscreen = 1
 # (list) Permissions
 android.permissions = INTERNET
 
-# (int) Android API to use
-android.api = 33
+# (int) Android API to use (31 - найбільш стабільна для GitHub)
+android.api = 31
 
 # (int) Minimum API your APK will support.
 android.minapi = 21
@@ -50,8 +50,8 @@ android.ndk_path =
 android.sdk_path = 
 
 # (list) The Android architectures to build for
-# arm64-v8a — для нових телефонів, armeabi-v7a — для старіших
-android.archs = arm64-v8a, armeabi-v7a
+# Використовуємо одну для уникнення конфліктів при першій збірці
+android.archs = arm64-v8a
 
 # (bool) Allow backup
 android.allow_backup = True
