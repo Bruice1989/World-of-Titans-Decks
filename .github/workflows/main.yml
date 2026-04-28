@@ -7,18 +7,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: Build with Buildozer
-        # Використовуємо цей варіант, він найнадійніший зараз
-        uses: ArtemSashko/buildozer-action@v1
+        # Використовуємо інший перевірений екшн
+        uses: paletov/buildozer-action@master
         with:
           command: buildozer android debug
-          buildozer_version: master
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
