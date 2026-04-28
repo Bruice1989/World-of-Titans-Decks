@@ -8,15 +8,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build with Buildozer
-        # Використовуємо актуальний та робочий екшн
-        uses: ArtemSashko/buildozer-action@v1.6.1
+        # Використовуємо перевірений екшн з маленької літери
+        uses: artemsashko/buildozer-action@v1
         with:
           command: buildozer android debug
-          buildozer_version: master
 
       - name: Upload APK
-        # Використовуємо нову версію v4, як вимагає GitHub
         uses: actions/upload-artifact@v4
         with:
-          name: my-game-apk
+          name: WorldOfTitansAPK
           path: bin/*.apk
