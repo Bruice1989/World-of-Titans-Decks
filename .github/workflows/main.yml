@@ -53,7 +53,14 @@ jobs:
 
       - name: Build APK (debug)
         run: |
-          buildozer -v android debug 2>&1 | tee build.log || true
+          buildozer -v android debug > build.log 2>&1
+        continue-on-error: true
+
+      - name: Show last 100 lines of build log
+        if: always()
+        run: |
+          echo "=== ОСТАННІ 100 РЯДКІВ ЛОГУ ==="
+          tail -100 build.log || echo "build.log не знайдено"
 
       - name: Upload FULL build log
         if: always()
@@ -61,12 +68,14 @@ jobs:
         with:
           name: full-build-log
           path: build.log
+          if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload APK if success
+      - name: Upload APK if exists
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: WorldOfTitans-debug-apk
           path: bin/*.apk
+          if-no-files-found: warn
           retention-days: 30
