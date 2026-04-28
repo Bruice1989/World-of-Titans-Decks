@@ -38,13 +38,35 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
           echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
 
-      - name: Accept Android SDK licenses (system SDK)
+      - name: Setup Android SDK for Buildozer
         run: |
+          # Приймаємо всі ліцензії
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+
+          # Встановлюємо потрібні компоненти
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "build-tools;33.0.2" \
             "platforms;android-31" 2>/dev/null || true
+
+          # ⚠️ Створюємо папку tools/bin і симлінк на sdkmanager
+          # Buildozer шукає саме tools/bin/sdkmanager
+          mkdir -p $ANDROID_HOME/tools/bin
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+                 $ANDROID_HOME/tools/bin/sdkmanager
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager \
+                 $ANDROID_HOME/tools/bin/avdmanager
+
+          # Перевірка
+          echo "sdkmanager знайдено:"
+          ls -la $ANDROID_HOME/tools/bin/sdkmanager
+
+          # Приймаємо ліцензії в системному SDK
+          mkdir -p $ANDROID_HOME/licenses
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
+            > $ANDROID_HOME/licenses/android-sdk-license
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
+            > $ANDROID_HOME/licenses/android-sdk-preview-license
 
       - name: Clear old Buildozer cache
         run: |
@@ -53,15 +75,8 @@ jobs:
 
       - name: Point Buildozer to system Android SDK
         run: |
-          # Buildozer шукає SDK в ~/.buildozer — зробимо симлінк на системний
           mkdir -p ~/.buildozer/android/platform
           ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
-          # Також приймаємо ліцензії в системному SDK
-          mkdir -p $ANDROID_HOME/licenses
-          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
-            > $ANDROID_HOME/licenses/android-sdk-license
-          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
-            > $ANDROID_HOME/licenses/android-sdk-preview-license
 
       - name: Install Buildozer + Cython
         run: |
