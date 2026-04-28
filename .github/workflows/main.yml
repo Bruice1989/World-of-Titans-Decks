@@ -23,12 +23,5 @@ jobs:
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:$HOME/.local/bin
-          # yes | означає автоматично погоджуватися на всі ліцензії Android SDK
-          yes | buildozer android debug
-        continue-on-error: false
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorldOfTitansAPK
-          path: bin/*.apk
+          # Додаємо -v (verbose) для детального звіту про помилку
+          yes | buildozer -v android debug
