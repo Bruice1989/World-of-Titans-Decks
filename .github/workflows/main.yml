@@ -39,7 +39,6 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
           echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
 
-      # ⚠️ Очищаємо старий кеш — він заважає після зміни spec
       - name: Clear old Buildozer cache
         run: |
           rm -rf ~/.buildozer
@@ -54,19 +53,20 @@ jobs:
 
       - name: Build APK (debug)
         run: |
-          buildozer -v android debug 2>&1 | tee build.log
+          buildozer -v android debug 2>&1 | tee build.log || true
 
-      - name: Upload APK
+      - name: Upload FULL build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-build-log
+          path: build.log
+          retention-days: 7
+
+      - name: Upload APK if success
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: WorldOfTitans-debug-apk
           path: bin/*.apk
           retention-days: 30
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-failure
-          path: build.log
-          retention-days: 7
