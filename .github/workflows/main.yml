@@ -1,46 +1,72 @@
 name: Build Android APK
-on: [push, workflow_dispatch]
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git python3 python3-dev ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev
-          pip install --user --upgrade Cython==0.29.33 buildozer
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev \
+            libltdl-dev build-essential ccache \
+            libgstreamer1.0-dev gstreamer1.0-plugins-base \
+            libgl1-mesa-dev libgles2-mesa-dev
 
-      - name: Build with Buildozer
+      - name: Set JAVA_HOME to Java 17
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          # Вимикаємо системні шляхи NDK від GitHub, щоб вони не заважали
-          unset ANDROID_NDK_HOME
-          unset ANDROID_NDK_ROOT
-          unset ANDROID_NDK
-          
-          # Очищуємо робочу папку
-          rm -rf .buildozer/
-          
-          # Запускаємо збірку. Команда yes автоматично погоджується з усіма ліцензіями
-          yes | buildozer -v android debug
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
+          echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
+
+      # ⚠️ Очищаємо старий кеш — він заважає після зміни spec
+      - name: Clear old Buildozer cache
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf .buildozer
+
+      - name: Install Buildozer + Cython
+        run: |
+          pip install --upgrade pip wheel
+          pip install Cython==0.29.37
+          pip install buildozer==1.5.0
+          pip install python-for-android==2024.1.21
+
+      - name: Build APK (debug)
+        run: |
+          buildozer -v android debug 2>&1 | tee build.log
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WorldOfTitansAPK
+          name: WorldOfTitans-debug-apk
           path: bin/*.apk
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-failure
+          path: build.log
+          retention-days: 7
