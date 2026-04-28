@@ -38,17 +38,6 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
           echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
 
-      - name: Accept Android SDK licenses
-        run: |
-          mkdir -p $HOME/.android
-          echo "count=0" > $HOME/.android/repositories.cfg
-          mkdir -p $ANDROID_HOME/licenses
-          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo -e "\n33b6a2b64607f11b759f320ef9dff4ae5c47d97a" > $ANDROID_HOME/licenses/google-gdk-license
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses 2>/dev/null || true
-
       - name: Clear old Buildozer cache
         run: |
           rm -rf ~/.buildozer
@@ -60,6 +49,20 @@ jobs:
           pip install Cython==0.29.37
           pip install buildozer==1.5.0
           pip install python-for-android==2024.1.21
+
+      - name: Pre-accept Android SDK licenses for Buildozer SDK path
+        run: |
+          # Buildozer SDK шлях — саме сюди він завантажує свій SDK
+          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
+          mkdir -p "$BUILDOZER_SDK/licenses"
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
+            > "$BUILDOZER_SDK/licenses/android-sdk-license"
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
+            > "$BUILDOZER_SDK/licenses/android-sdk-preview-license"
+          printf "\nd975f751698a77b662f1254ddbeed3901e976f5a" \
+            > "$BUILDOZER_SDK/licenses/intel-android-extra-license"
+          echo "Ліцензії записано в $BUILDOZER_SDK/licenses/"
+          ls -la "$BUILDOZER_SDK/licenses/"
 
       - name: Build APK (debug)
         run: |
