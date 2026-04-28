@@ -5695,7 +5695,7 @@ class Game:
                     returned = card.runes.pop(0)  # знімаємо першу руну
                     returned.pop("for_titan", None)
                     self.my_runes.append(returned)
-                    self.rune_msg = f"Руну {returned["name"]} знято і повернуто до Моїх Рун!"
+                    self.rune_msg = f"Руну {returned['name']} знято і повернуто до Моїх Рун!"
                     if not card.runes:
                         self.remove_rune_selected_card = None
                     self.save_game()
