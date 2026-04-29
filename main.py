@@ -652,27 +652,16 @@ def get_battle_lore(world, loc):
 
 
 WIDTH, HEIGHT = 1200, 800
-
-# Android detection
-import sys as _sys
-_IS_ANDROID = _sys.platform == "android" or hasattr(_sys, "getandroidapilevel")
-
 pygame.init()
 try:
     pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.mixer.init()
 except Exception as _mixer_err:
     print(f"[ПОПЕРЕДЖЕННЯ] Звук недоступний: {_mixer_err}")
-
+    # Продовжуємо без звуку
 _info = pygame.display.Info()
 NATIVE_W, NATIVE_H = _info.current_w, _info.current_h
-
-if _IS_ANDROID:
-    # SCALED масштабує 1200x800 на весь екран телефону автоматично
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
-else:
-    screen = pygame.display.set_mode((NATIVE_W, NATIVE_H), pygame.FULLSCREEN | pygame.NOFRAME)
-
+screen = pygame.display.set_mode((NATIVE_W, NATIVE_H), pygame.FULLSCREEN | pygame.NOFRAME)
 pygame.display.set_caption("Bruice Heroes: Tactical Battle System")
 _is_fullscreen = True
 
@@ -1238,27 +1227,10 @@ CARD_BORDER = (200, 200, 200)
 HIGHLIGHT = (0, 255, 255)
 GRAY = (100, 100, 100)
 
-# На Android SysFont("Verdana") не існує — використовуємо стандартний шрифт pygame
-# або TTF-файл якщо є в assets/
-def _load_font(size, bold=False):
-    try:
-        # Спробуємо bundled TTF з папки assets
-        import os
-        for fname in ["DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
-                      "arial.ttf", "FreeSans.ttf"]:
-            for folder in ["assets", "fonts", "."]:
-                p = os.path.join(folder, fname)
-                if os.path.exists(p):
-                    return pygame.font.Font(p, size)
-        # Fallback: стандартний pygame шрифт
-        return pygame.font.SysFont(None, size, bold=bold)
-    except Exception:
-        return pygame.font.SysFont(None, size, bold=bold)
-
-font       = _load_font(18)
-font_small = _load_font(12)
-font_bold  = _load_font(14, bold=True)
-font_big   = _load_font(36, bold=True)
+font = pygame.font.SysFont("Verdana", 18)
+font_small = pygame.font.SysFont("Verdana", 12)
+font_bold = pygame.font.SysFont("Verdana", 14, bold=True)
+font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
@@ -5723,7 +5695,7 @@ class Game:
                     returned = card.runes.pop(0)  # знімаємо першу руну
                     returned.pop("for_titan", None)
                     self.my_runes.append(returned)
-                    self.rune_msg = f"Руну {returned["name"]} знято і повернуто до Моїх Рун!"
+                    self.rune_msg = f"Руну {returned['name']} знято і повернуто до Моїх Рун!"
                     if not card.runes:
                         self.remove_rune_selected_card = None
                     self.save_game()
@@ -6793,7 +6765,7 @@ class Game:
                 _vals_ar=[(_rm_ar["name"],(255,220,100)),(str(_rm_ar["cards"]),(180,255,180)),
                           (str(_rm_ar["total_hp"]),(100,200,255)),(str(_rm_ar["max_atk"]),(255,140,40)),
                           (str(_rm_ar["total_atk"]),(255,100,100)),(f"Лок.{_rm_ar['loc']} С.{_rm_ar['world']}",(180,180,255)),
-                          (f"{_rm_ar['ping']}мс",(100,220,100) if _rm_ar["ping"]<50 else (220,180,50)),
+                          (f"{_rm_ar['ping']}мс",(100,220,100) if _rm_ar['ping']<50 else (220,180,50)),
                           (_rm_ar["status"],(80,220,80) if _rm_ar["status"]=="Чекає" else (220,80,80))]
                 _vx_ar=30
                 for (_vt_ar,_vc_ar),(_cn_ar2,_cw_ar2) in zip(_vals_ar,_cols_ar):
@@ -6908,7 +6880,7 @@ class Game:
                         (str(_room["max_atk"]),  (255,140,40)),
                         (str(_room["total_atk"]), (255,100,100)),
                         (f"Лок.{_room['loc']} С.{_room['world']}", (180,180,255)),
-                        (f"{_room['ping']}мс",  (100,220,100) if _room["ping"]<50 else (220,180,50)),
+                        (f"{_room['ping']}мс",  (100,220,100) if _room['ping']<50 else (220,180,50)),
                         (_room["status"],   (80,220,80) if _room["status"]=="Чекає" else (220,80,80)),
                     ]
                     _vx = 30
@@ -10648,14 +10620,6 @@ def main():
                 game.save_game(); pygame.quit(); sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 game.handle_click(event.pos)
-            # Android touch support (FINGERDOWN maps to screen coordinates)
-            if event.type == pygame.FINGERDOWN:
-                fx = int(event.x * WIDTH)
-                fy = int(event.y * HEIGHT)
-                game.handle_click((fx, fy))
-            # Android: кнопка "Назад" = KEYDOWN K_ESCAPE or K_AC_BACK
-            if event.type == pygame.KEYDOWN and event.key in (pygame.K_AC_BACK,):
-                import sys as _s; _s.exit(0)
             if event.type == pygame.KEYDOWN:
                 # Ввід IP для LAN
                 if getattr(game, "lb_ip_active", False):
