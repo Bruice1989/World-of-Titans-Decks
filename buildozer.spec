@@ -3,10 +3,12 @@ title = World of Titans Decks
 package.name = worldtitans
 package.domain = org.bruice
 source.dir = .
-source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3
+source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3,ogg
 source.main = main.py
-version = 0.1
-requirements = python3,pygame==2.1.2
+version = 0.2
+
+requirements = python3,pygame==2.1.3
+
 orientation = landscape
 fullscreen = 1
 android.permissions = INTERNET
