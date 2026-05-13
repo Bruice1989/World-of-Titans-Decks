@@ -9,7 +9,7 @@ source.main = main.py
 
 version = 0.2
 
-requirements = python3==3.11.0,hostpython3==3.11.0,pygame==2.1.3,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
+requirements = python3,pygame==2.1.3,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
 
 orientation = landscape
 fullscreen = 1
@@ -23,6 +23,9 @@ android.ndk_api = 21
 android.archs = arm64-v8a
 
 p4a.bootstrap = sdl2
+
+# Використовуємо старий стабільний коміт p4a
+p4a.source_dir =
 
 [buildozer]
 log_level = 2
