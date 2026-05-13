@@ -71,7 +71,6 @@ jobs:
           pip install --upgrade pip wheel
           pip install Cython==0.29.37
           pip install buildozer==1.5.0
-          # КЛЮЧОВА ЗМІНА: використовуємо p4a з підтримкою pygame 2.1.3
           pip install python-for-android==2024.1.21
 
       - name: Set Gradle memory
@@ -88,17 +87,21 @@ jobs:
           buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
 
-      - name: Show last 150 lines of build log
-        if: always()
-        run: tail -150 logs/build.log || echo "Лог не знайдено"
-
-      - name: Find and copy APK
+      - name: Find APK
         if: always()
         run: |
           echo "=== Шукаємо .apk ==="
           find . -name "*.apk" 2>/dev/null || echo "APK не знайдено"
           mkdir -p bin
           find .buildozer -name "*.apk" -exec cp {} bin/ \; 2>/dev/null || true
+
+      - name: Show last 50 lines of build log
+        if: always()
+        run: |
+          echo "=== ОСТАННІ 50 РЯДКІВ ==="
+          grep -i "error\|fatal\|failed\|Exception" logs/build.log | tail -20 || true
+          echo "=== КІНЕЦЬ ЛОГУ ==="
+          tail -50 logs/build.log || echo "Лог не знайдено"
 
       - name: Upload full build log
         if: always()
