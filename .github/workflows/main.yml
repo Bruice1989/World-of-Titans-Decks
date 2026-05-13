@@ -69,7 +69,7 @@ jobs:
       - name: Install Buildozer + Cython
         run: |
           pip install --upgrade pip wheel
-          pip install Cython==0.29.37
+          pip install "Cython==3.0.11"
           pip install "sh>=1.10,<2.0"
           pip install buildozer==1.5.0
           pip install python-for-android==2024.1.21
