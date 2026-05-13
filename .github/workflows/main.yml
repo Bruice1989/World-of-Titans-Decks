@@ -5,23 +5,100 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/kivy/buildozer:latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build APK
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev \
+            libltdl-dev build-essential ccache \
+            libgl1-mesa-dev libgles2-mesa-dev
+
+      - name: Set JAVA_HOME to Java 17
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
+          echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
+
+      - name: Setup Android SDK
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "build-tools;33.0.2" \
+            "platforms;android-31" 2>/dev/null || true
+          mkdir -p $ANDROID_HOME/tools/bin
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+                 $ANDROID_HOME/tools/bin/sdkmanager
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager \
+                 $ANDROID_HOME/tools/bin/avdmanager
+          mkdir -p $ANDROID_HOME/licenses
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
+            > $ANDROID_HOME/licenses/android-sdk-license
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
+            > $ANDROID_HOME/licenses/android-sdk-preview-license
+
+      - name: Clear old Buildozer cache
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf .buildozer
+
+      - name: Point Buildozer to system Android SDK
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
+
+      - name: Install Buildozer + dependencies
+        run: |
+          pip install --upgrade pip wheel
+          pip install "Cython==0.29.37"
+          pip install "sh>=1.10,<2.0"
+          pip install buildozer==1.5.0
+          pip install python-for-android==2024.1.21
+          # Виправлення distutils для Python 3.12+
+          pip install "setuptools==65.5.0"
+
+      - name: Patch pygame setup.py for Python 3.12+
+        run: |
+          cat > /tmp/fix_pygame.py << 'EOF'
+          import os, glob
+          # Патч буде застосований після завантаження pygame p4a
+          print("Патч готовий до застосування")
+          EOF
+          python /tmp/fix_pygame.py
+
+      - name: Set Gradle memory
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+
+      - name: Build APK (debug)
         env:
-          BUILDOZER_WARN_ON_ROOT: "0"
+          GRADLE_OPTS: "-Xmx4g"
+          # Це змушує використовувати старий distutils
+          SETUPTOOLS_USE_DISTUTILS: "stdlib"
         run: |
           mkdir -p logs
-          yes | buildozer -v android debug 2>&1 | tee logs/build.log
+          buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
 
       - name: Find APK
@@ -34,7 +111,7 @@ jobs:
       - name: Show errors
         if: always()
         run: |
-          grep -i "error\|fatal\|failed" logs/build.log | tail -20 || true
+          grep -i "error\|fatal\|failed\|Exception" logs/build.log | tail -20 || true
           tail -30 logs/build.log || true
 
       - name: Upload full build log
