@@ -9,7 +9,7 @@ source.main = main.py
 
 version = 0.2
 
-requirements = python3,kivy==2.3.0,pygame==2.5.2
+requirements = python3,pygame==2.1.3,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
 
 orientation = landscape
 fullscreen = 1
