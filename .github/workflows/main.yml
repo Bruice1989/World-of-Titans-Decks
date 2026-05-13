@@ -70,6 +70,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel
           pip install Cython==0.29.37
+          pip install "sh>=1.10,<2.0"
           pip install buildozer==1.5.0
           pip install python-for-android==2024.1.21
 
@@ -95,10 +96,10 @@ jobs:
           mkdir -p bin
           find .buildozer -name "*.apk" -exec cp {} bin/ \; 2>/dev/null || true
 
-      - name: Show last 50 lines of build log
+      - name: Show errors from build log
         if: always()
         run: |
-          echo "=== ОСТАННІ 50 РЯДКІВ ==="
+          echo "=== ПОМИЛКИ ==="
           grep -i "error\|fatal\|failed\|Exception" logs/build.log | tail -20 || true
           echo "=== КІНЕЦЬ ЛОГУ ==="
           tail -50 logs/build.log || echo "Лог не знайдено"
