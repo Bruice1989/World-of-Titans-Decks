@@ -10,7 +10,7 @@ jobs:
     name: Build APK
     runs-on: ubuntu-22.04
     container:
-image: ghcr.io/kivy/buildozer:latest
+      image: ghcr.io/kivy/buildozer:latest
 
     steps:
       - name: Checkout
