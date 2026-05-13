@@ -73,6 +73,20 @@ jobs:
           pip install "sh>=1.10,<2.0"
           pip install buildozer==1.5.0
           pip install git+https://github.com/kivy/python-for-android.git@v2023.09.16
+          # Встановлюємо setuptools з distutils для сумісності
+          pip install "setuptools<65.0.0"
+
+      - name: Patch distutils in p4a hostpython recipe
+        run: |
+          # Знаходимо рецепт hostpython3 і фіксуємо версію на 3.11
+          P4A_PATH=$(python -c "import pythonforandroid; import os; print(os.path.dirname(pythonforandroid.__file__))")
+          echo "p4a path: $P4A_PATH"
+          # Замінюємо версію hostpython3 на 3.11.9
+          sed -i 's/version = .*/version = "3.11.9"/' $P4A_PATH/recipes/hostpython3/__init__.py || true
+          sed -i 's/version = .*/version = "3.11.9"/' $P4A_PATH/recipes/python3/__init__.py || true
+          echo "Версії рецептів:"
+          grep "version" $P4A_PATH/recipes/hostpython3/__init__.py | head -3
+          grep "version" $P4A_PATH/recipes/python3/__init__.py | head -3
 
       - name: Set Gradle memory
         run: |
