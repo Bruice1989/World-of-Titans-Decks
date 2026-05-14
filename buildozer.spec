@@ -9,7 +9,7 @@ source.main = main.py
 
 version = 0.2
 
-requirements = python3,pygame==2.6.1,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
+requirements = python3==3.11.9,pygame==2.6.1,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
 
 orientation = landscape
 fullscreen = 1
@@ -23,6 +23,7 @@ android.ndk_api = 21
 android.archs = arm64-v8a
 
 p4a.bootstrap = sdl2
+p4a.branch = develop
 
 [buildozer]
 log_level = 2
