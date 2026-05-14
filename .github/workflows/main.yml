@@ -72,7 +72,7 @@ jobs:
           pip install "Cython==3.0.11"
           pip install "sh==1.14.3"
           pip install buildozer==1.5.0
-          pip install git+https://github.com/kivy/python-for-android.git@2023.09.16
+          pip install git+https://github.com/kivy/python-for-android.git@v2023.09.16
           pip install appdirs colorama jinja2 meson ninja build toml packaging setuptools "wheel==0.43.0"
           pip install --user "Cython==3.0.11"
 
