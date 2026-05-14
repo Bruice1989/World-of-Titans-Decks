@@ -86,9 +86,9 @@ jobs:
       - name: Build APK (debug)
         env:
           GRADLE_OPTS: "-Xmx4g"
-          CYTHON: "cython"
-          PATH: "/opt/hostedtoolcache/Python/3.10.20/x64/bin:$PATH"
         run: |
+          export CYTHON=$(which cython)
+          echo "Cython знайдено: $CYTHON"
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
