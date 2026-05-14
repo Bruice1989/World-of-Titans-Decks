@@ -74,6 +74,8 @@ jobs:
           pip install buildozer==1.5.0
           pip install "python-for-android==2024.1.21" --no-deps
           pip install appdirs colorama jinja2 meson ninja build toml packaging setuptools "wheel==0.43.0"
+          pip install --user "Cython==3.0.11"
+          sudo pip install "Cython==3.0.11" || true
 
       - name: Set Gradle memory
         run: |
@@ -84,6 +86,8 @@ jobs:
       - name: Build APK (debug)
         env:
           GRADLE_OPTS: "-Xmx4g"
+          CYTHON: "cython"
+          PATH: "/opt/hostedtoolcache/Python/3.10.20/x64/bin:$PATH"
         run: |
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
