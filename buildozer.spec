@@ -6,7 +6,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3,ogg
 source.main = main.py
 version = 0.2
-requirements = python3==3.10.14,hostpython3==3.10.14,pygame_ce==2.4.1,sdl2,sdl2_ttf,sdl2_image,sdl2_mixer
+requirements = python3==3.10.14,hostpython3==3.10.14,pygame_ce==2.4.1
 orientation = landscape
 fullscreen = 1
 android.permissions = INTERNET
