@@ -90,12 +90,18 @@ jobs:
           export CYTHON=$(which cython)
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
+        continue-on-error: true
+
+      - name: Remove x86_64 pygame and rebuild
+        run: |
           PYGAME_PATH=$(find .buildozer -path "*/python-installs/worldtitans/*/pygame" -type d 2>/dev/null | head -1)
           if [ -n "$PYGAME_PATH" ]; then
-            echo "Знайдено старий pygame: $PYGAME_PATH"
+            echo "Знайдено x86_64 pygame: $PYGAME_PATH"
             rm -rf "$PYGAME_PATH"
             echo "Видалено! Перебудовуємо APK..."
             buildozer -v android debug 2>&1 | tee -a logs/build.log
+          else
+            echo "pygame в python-installs не знайдено"
           fi
         continue-on-error: true
 
