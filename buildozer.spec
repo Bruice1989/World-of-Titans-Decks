@@ -18,6 +18,7 @@ android.ndk_api = 21
 android.archs = arm64-v8a
 p4a.bootstrap = sdl2
 p4a.branch = master
+p4a.hook = pre_build_hook.py
 
 [buildozer]
 log_level = 2
