@@ -92,17 +92,49 @@ jobs:
           buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
 
-      - name: Remove x86_64 pygame and rebuild
+      - name: Patch pygame_ce wheel and rebuild
         run: |
-          PYGAME_PATH=$(find .buildozer -path "*/python-installs/worldtitans/*/pygame" -type d 2>/dev/null | head -1)
-          if [ -n "$PYGAME_PATH" ]; then
-            echo "Знайдено x86_64 pygame: $PYGAME_PATH"
-            rm -rf "$PYGAME_PATH"
-            echo "Видалено! Перебудовуємо APK..."
-            buildozer -v android debug 2>&1 | tee -a logs/build.log
-          else
-            echo "pygame в python-installs не знайдено"
+          # Видаляємо x86_64 pygame з python-installs
+          find .buildozer -path "*/python-installs/worldtitans/*/pygame" -type d -exec rm -rf {} + 2>/dev/null || true
+
+          # Знаходимо папку встановлення
+          INSTALL_DIR=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a" -type d 2>/dev/null | head -1)
+          echo "Install dir: $INSTALL_DIR"
+
+          if [ -n "$INSTALL_DIR" ]; then
+            mkdir -p /tmp/pygame_wheels/
+
+            # Спробуємо завантажити android wheel
+            pip download pygame_ce==2.4.1 \
+              --only-binary=:all: \
+              --platform=android_21_aarch64 \
+              --python-version=3.10 \
+              --abi=cp310 \
+              -d /tmp/pygame_wheels/ 2>/dev/null || \
+            pip download pygame_ce==2.4.1 \
+              --only-binary=:all: \
+              --platform=android_21_arm64_v8a \
+              --python-version=3.10 \
+              -d /tmp/pygame_wheels/ 2>/dev/null || \
+            pip download pygame_ce==2.4.1 \
+              --only-binary=:all: \
+              --platform=linux_aarch64 \
+              --python-version=3.10 \
+              -d /tmp/pygame_wheels/ 2>/dev/null || true
+
+            echo "Знайдені wheels:"
+            ls /tmp/pygame_wheels/ || echo "Wheels не знайдено"
+
+            for wheel in /tmp/pygame_wheels/*.whl; do
+              if [ -f "$wheel" ]; then
+                echo "Встановлюємо: $wheel"
+                pip install "$wheel" --target="$INSTALL_DIR" --no-deps 2>/dev/null || true
+              fi
+            done
           fi
+
+          # Перебудовуємо APK
+          buildozer -v android debug 2>&1 | tee -a logs/build.log
         continue-on-error: true
 
       - name: Find APK
