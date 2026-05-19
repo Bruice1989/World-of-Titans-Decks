@@ -1,4 +1,7 @@
-import pygame
+﻿try:
+    import pygame
+except ImportError:
+    import pygame_ce as pygame
 
 def _open_url(url):
     """Відкриває URL у браузері — працює на Windows, macOS та Linux."""
@@ -972,14 +975,15 @@ def create_super_human_card(sh_data):
     orig, name, lvl, shards, uah = sh_data
     c = Card(orig, 1)           # Завжди починається з 1 рівня
     c.name = name
+    c.original_name = orig      # для пошуку в army
     c.is_monster = False
     c.race = "Супер Люди"
     c.max_hp, c.attack = get_super_human_stats(1)
     c.hp   = c.max_hp
     c._super_human      = True
-    c._super_human_xp   = 0    # XP для скормки (100 = +1 рівень)
+    c._super_human_xp   = 0
     c._super_human_orig = orig
-    c.divine_xp         = 0    # сумісно з DIVINE_LEVEL_EVO
+    c.divine_xp         = 0
     return c
 
 def get_abilities_for_card(card):
@@ -1288,14 +1292,180 @@ MARKET = "market"
 TITAN_MONSTERS = "titan_monsters"
 TITAN_MONSTER_LOCS = "titan_monster_locs"
 MY_SHARDS = "my_shards"
-SETTINGS  = "settings"
-GRAVEYARD = "graveyard"
+SETTINGS    = "settings"
+LANG_SELECT = "lang_select"
+GRAVEYARD   = "graveyard"
 SUPER_HUMAN_SHOP = "super_human_shop"   # Нова вкладка Ринку — Карти за Осколки 125 LVL
 ARCH_SHOP     = "arch_shop"   # Вкладка Ринку — КАРТИ ЗА ОСКОЛКИ ІІ (Архангели та Архдемони)
 LUCKY_HEROES  = "lucky_heroes"   # Вдача Героїв — хаб
 ENCYCLOPEDIA  = "encyclopedia"    # Енциклопедія
 MONOPOLY_STATE = "monopoly"       # Монополія
 FORTUNA_STATE  = "fortuna"        # Фортуна
+
+# ── СИСТЕМА МУЛЬТИМОВНОСТІ ────────────────────────────────────────────────────
+LANGUAGES = [
+    ("uk", "🇺🇦 Українська"),
+    ("en", "🇬🇧 English"),
+    ("zh", "🇨🇳 中文"),
+    ("es", "🇪🇸 Español"),
+    ("ar", "🇸🇦 العربية"),
+    ("fr", "🇫🇷 Français"),
+    ("pt", "🇧🇷 Português"),
+    ("ru", "🇷🇺 Русский"),
+    ("de", "🇩🇪 Deutsch"),
+    ("pl", "🇵🇱 Polski"),
+]
+
+TRANSLATIONS = {
+    # ─── Налаштування ───────────────────────────────────────────────────────
+    "SETTINGS_TITLE": {
+        "uk": "НАЛАШТУВАННЯ", "en": "SETTINGS", "zh": "设置",
+        "es": "AJUSTES", "ar": "الإعدادات", "fr": "PARAMÈTRES",
+        "pt": "CONFIGURAÇÕES", "ru": "НАСТРОЙКИ", "de": "EINSTELLUNGEN", "pl": "USTAWIENIA",
+    },
+    "MUSIC_ON": {
+        "uk": "[✓] МУЗИКА", "en": "[✓] MUSIC", "zh": "[✓] 音乐",
+        "es": "[✓] MÚSICA", "ar": "[✓] الموسيقى", "fr": "[✓] MUSIQUE",
+        "pt": "[✓] MÚSICA", "ru": "[✓] МУЗЫКА", "de": "[✓] MUSIK", "pl": "[✓] MUZYKA",
+    },
+    "MUSIC_OFF": {
+        "uk": "[  ] МУЗИКА", "en": "[  ] MUSIC", "zh": "[  ] 音乐",
+        "es": "[  ] MÚSICA", "ar": "[  ] الموسيقى", "fr": "[  ] MUSIQUE",
+        "pt": "[  ] MÚSICA", "ru": "[  ] МУЗЫКА", "de": "[  ] MUSIK", "pl": "[  ] MUZYKA",
+    },
+    "SOUNDS_ON": {
+        "uk": "[✓] ЗВУКИ БОЮ", "en": "[✓] BATTLE SOUNDS", "zh": "[✓] 战斗音效",
+        "es": "[✓] SONIDOS", "ar": "[✓] أصوات المعركة", "fr": "[✓] SONS DE COMBAT",
+        "pt": "[✓] SONS DE BATALHA", "ru": "[✓] ЗВУКИ БОЯ", "de": "[✓] KAMPFGERÄUSCHE", "pl": "[✓] DŹWIĘKI WALKI",
+    },
+    "SOUNDS_OFF": {
+        "uk": "[  ] ЗВУКИ БОЮ", "en": "[  ] BATTLE SOUNDS", "zh": "[  ] 战斗音效",
+        "es": "[  ] SONIDOS", "ar": "[  ] أصوات المعركة", "fr": "[  ] SONS DE COMBAT",
+        "pt": "[  ] SONS DE BATALHA", "ru": "[  ] ЗВУКИ БОЯ", "de": "[  ] KAMPFGERÄUSCHE", "pl": "[  ] DŹWIĘKI WALKI",
+    },
+    "RESET_PROGRESS": {
+        "uk": "СКИНУТИ ПРОГРЕС", "en": "RESET PROGRESS", "zh": "重置进度",
+        "es": "REINICIAR PROGRESO", "ar": "إعادة التقدم", "fr": "RÉINITIALISER",
+        "pt": "REINICIAR PROGRESSO", "ru": "СБРОСИТЬ ПРОГРЕСС", "de": "FORTSCHRITT ZURÜCKSETZEN", "pl": "RESETUJ POSTĘP",
+    },
+    "LANGUAGE_BTN": {
+        "uk": "🌐 ВИБІР МОВИ", "en": "🌐 LANGUAGE", "zh": "🌐 语言选择",
+        "es": "🌐 IDIOMA", "ar": "🌐 اللغة", "fr": "🌐 LANGUE",
+        "pt": "🌐 IDIOMA", "ru": "🌐 ЯЗЫК", "de": "🌐 SPRACHE", "pl": "🌐 JĘZYK",
+    },
+    "SAVE_EXIT": {
+        "uk": "ЗБЕРЕГТИ ТА ВИЙТИ", "en": "SAVE & EXIT", "zh": "保存并退出",
+        "es": "GUARDAR Y SALIR", "ar": "حفظ والخروج", "fr": "SAUVER ET QUITTER",
+        "pt": "SALVAR E SAIR", "ru": "СОХРАНИТЬ И ВЫЙТИ", "de": "SPEICHERN & BEENDEN", "pl": "ZAPISZ I WYJDŹ",
+    },
+    "BACK": {
+        "uk": "НАЗАД", "en": "BACK", "zh": "返回",
+        "es": "ATRÁS", "ar": "رجوع", "fr": "RETOUR",
+        "pt": "VOLTAR", "ru": "НАЗАД", "de": "ZURÜCK", "pl": "WSTECZ",
+    },
+    # ─── Вибір мови ─────────────────────────────────────────────────────────
+    "LANG_SELECT_TITLE": {
+        "uk": "ВИБІР МОВИ", "en": "SELECT LANGUAGE", "zh": "选择语言",
+        "es": "SELECCIONAR IDIOMA", "ar": "اختر اللغة", "fr": "CHOISIR LA LANGUE",
+        "pt": "SELECIONAR IDIOMA", "ru": "ВЫБОР ЯЗЫКА", "de": "SPRACHE WÄHLEN", "pl": "WYBÓR JĘZYKA",
+    },
+    # ─── Головне меню ───────────────────────────────────────────────────────
+    "MY_ARMY": {
+        "uk": "МОЯ АРМІЯ", "en": "MY ARMY", "zh": "我的军队",
+        "es": "MI EJÉRCITO", "ar": "جيشي", "fr": "MON ARMÉE",
+        "pt": "MEU EXÉRCITO", "ru": "МОЯ АРМИЯ", "de": "MEINE ARMEE", "pl": "MOJA ARMIA",
+    },
+    "SHOP": {
+        "uk": "МАГАЗИН", "en": "SHOP", "zh": "商店",
+        "es": "TIENDA", "ar": "المتجر", "fr": "BOUTIQUE",
+        "pt": "LOJA", "ru": "МАГАЗИН", "de": "SHOP", "pl": "SKLEP",
+    },
+    "WORLD_MAP": {
+        "uk": "КАРТА СВІТУ", "en": "WORLD MAP", "zh": "世界地图",
+        "es": "MAPA MUNDIAL", "ar": "خريطة العالم", "fr": "CARTE DU MONDE",
+        "pt": "MAPA MUNDIAL", "ru": "КАРТА МИРА", "de": "WELTKARTE", "pl": "MAPA ŚWIATA",
+    },
+    "BATTLE_HUB_BTN": {
+        "uk": "БИТВА В ЖИВУ", "en": "LIVE BATTLE", "zh": "实时战斗",
+        "es": "BATALLA EN VIVO", "ar": "المعركة المباشرة", "fr": "BATAILLE EN DIRECT",
+        "pt": "BATALHA AO VIVO", "ru": "БИТВА ВЖИВУЮ", "de": "LIVE-KAMPF", "pl": "BITWA NA ŻYWO",
+    },
+    "TITANS_BTN": {
+        "uk": "ТИТАНИ", "en": "TITANS", "zh": "泰坦",
+        "es": "TITANES", "ar": "التيتان", "fr": "TITANS",
+        "pt": "TITÃS", "ru": "ТИТАНЫ", "de": "TITANEN", "pl": "TYTANI",
+    },
+    "GRAVEYARD_BTN": {
+        "uk": "КЛАДОВИЩЕ", "en": "GRAVEYARD", "zh": "墓地",
+        "es": "CEMENTERIO", "ar": "المقبرة", "fr": "CIMETIÈRE",
+        "pt": "CEMITÉRIO", "ru": "КЛАДБИЩЕ", "de": "FRIEDHOF", "pl": "CMENTARZ",
+    },
+    "LUCKY_BTN": {
+        "uk": "ВДАЧА ГЕРОЇВ", "en": "HERO LUCK", "zh": "英雄运气",
+        "es": "SUERTE HEROICA", "ar": "حظ الأبطال", "fr": "CHANCE DES HÉROS",
+        "pt": "SORTE DOS HERÓIS", "ru": "УДАЧА ГЕРОЕВ", "de": "HELDENGLÜCK", "pl": "SZCZĘŚCIE BOHATERÓW",
+    },
+    "ENCYCLOPEDIA_BTN": {
+        "uk": "ЕНЦИКЛОПЕДІЯ", "en": "ENCYCLOPEDIA", "zh": "百科全书",
+        "es": "ENCICLOPEDIA", "ar": "موسوعة", "fr": "ENCYCLOPÉDIE",
+        "pt": "ENCICLOPÉDIA", "ru": "ЭНЦИКЛОПЕДИЯ", "de": "ENZYKLOPÄDIE", "pl": "ENCYKLOPEDIA",
+    },
+    "SETTINGS_BTN": {
+        "uk": "НАЛАШТУВАННЯ", "en": "SETTINGS", "zh": "设置",
+        "es": "AJUSTES", "ar": "الإعدادات", "fr": "PARAMÈTRES",
+        "pt": "CONFIGURAÇÕES", "ru": "НАСТРОЙКИ", "de": "EINSTELLUNGEN", "pl": "USTAWIENIA",
+    },
+    # ─── Бій ────────────────────────────────────────────────────────────────
+    "VICTORY": {
+        "uk": "ПЕРЕМОГА!", "en": "VICTORY!", "zh": "胜利！",
+        "es": "¡VICTORIA!", "ar": "!النصر", "fr": "VICTOIRE!",
+        "pt": "VITÓRIA!", "ru": "ПОБЕДА!", "de": "SIEG!", "pl": "ZWYCIĘSTWO!",
+    },
+    "DEFEAT": {
+        "uk": "ПОРАЗКА...", "en": "DEFEAT...", "zh": "失败...",
+        "es": "DERROTA...", "ar": "...الهزيمة", "fr": "DÉFAITE...",
+        "pt": "DERROTA...", "ru": "ПОРАЖЕНИЕ...", "de": "NIEDERLAGE...", "pl": "PORAŻKA...",
+    },
+    "DEFEAT_MSG": {
+        "uk": "Герої пали на полі бою!", "en": "Heroes fell on the battlefield!",
+        "zh": "英雄们倒在了战场上！", "es": "¡Los héroes cayeron en batalla!",
+        "ar": "!سقط الأبطال في ساحة المعركة", "fr": "Les héros sont tombés au combat!",
+        "pt": "Os heróis caíram no campo de batalha!", "ru": "Герои пали на поле боя!",
+        "de": "Helden fielen auf dem Schlachtfeld!", "pl": "Bohaterowie polegli na polu bitwy!",
+    },
+    # ─── Кладовище ──────────────────────────────────────────────────────────
+    "RESURRECT": {
+        "uk": "ОЖИВИТИ", "en": "RESURRECT", "zh": "复活",
+        "es": "RESUCITAR", "ar": "إحياء", "fr": "RESSUSCITER",
+        "pt": "RESSUSCITAR", "ru": "ВОСКРЕСИТЬ", "de": "WIEDERBELEBEN", "pl": "WSKRZESIĆ",
+    },
+    "BURY": {
+        "uk": "ПОХОРОНИТИ", "en": "BURY", "zh": "埋葬",
+        "es": "ENTERRAR", "ar": "دفن", "fr": "ENTERRER",
+        "pt": "ENTERRAR", "ru": "ПОХОРОНИТЬ", "de": "BEGRABEN", "pl": "POCHOWAĆ",
+    },
+    # ─── Магазин ────────────────────────────────────────────────────────────
+    "BUY": {
+        "uk": "КУПИТИ", "en": "BUY", "zh": "购买",
+        "es": "COMPRAR", "ar": "شراء", "fr": "ACHETER",
+        "pt": "COMPRAR", "ru": "КУПИТЬ", "de": "KAUFEN", "pl": "KUP",
+    },
+    # ─── Загальне ───────────────────────────────────────────────────────────
+    "CONFIRM_RESET": {
+        "uk": "Скинути весь прогрес?", "en": "Reset all progress?", "zh": "重置所有进度？",
+        "es": "¿Reiniciar todo el progreso?", "ar": "إعادة تعيين كل التقدم؟",
+        "fr": "Réinitialiser toute la progression?", "pt": "Redefinir todo o progresso?",
+        "ru": "Сбросить весь прогресс?", "de": "Gesamten Fortschritt zurücksetzen?", "pl": "Zresetować cały postęp?",
+    },
+}
+
+# Поточна мова (глобальна змінна; змінюється через Settings → Вибір мови)
+_current_lang = "uk"
+
+def T(key):
+    """Повертає переклад рядка для поточної мови."""
+    entry = TRANSLATIONS.get(key, {})
+    return entry.get(_current_lang, entry.get("uk", key))
 
 # ── РАСА «АРХАНГЕЛИ ТА АРХДЕМОНИ» — 20 карт ─────────────────────────────────
 # Формат: (original_name, display_name, base_level, shard_cost, uah_price)
@@ -1421,12 +1591,13 @@ def create_arch_card(ar_data):
     orig, name, lvl, shards, uah = ar_data
     c = Card(orig, 1)
     c.name = name
+    c.original_name = orig      # для пошуку в army
     c.is_monster = False
     c.race = "Архангели та Архдемони"
     c.max_hp, c.attack = get_arch_stats(1)
     c.hp   = c.max_hp
     c._arch_card      = True
-    c._arch_xp        = 0    # XP для скормки (за рівень корм-карти = +xp)
+    c._arch_xp        = 0
     c._arch_orig      = orig
     c.divine_xp       = 0
     return c
@@ -1945,9 +2116,299 @@ SUPREME_LEVEL_EVO = "supreme_level_evo"  # Прокачка рівня Верх�
 SUPREME_MAX_LEVEL = 120   # максимальний рівень EvII карти
 SUPREME_PRICE_UAH = 50    # ціна еволюції в гривнях
 SUPREME_REGEN_PER_LVL = 5 # реген ХП за хід на кожен рівень понад 110 (на 120 = 100HP)
-MONOBANK_API_TOKEN  = "m0NjcSazfoqE5AftAjlafmQ"  # Еквайринговий токен
-MONOBANK_MERCHANT_TOKEN = "m0NjcSazfoqE5AftAjlafmQ"  # Еквайринговий токен
-MONOBANK_CARD_ID    = "4441114405419480"  # Номер картки отримувача
+
+# ── USDT (TRC-20 / TRON) МАГАЗИН ─────────────────────────────────────────────
+# Курс: 1 USD ≈ 41 UAH  →  1 грн ≈ 0.0244 USDT
+UAH_TO_USDT_RATE        = 41.0   # скільки гривень в 1 USDT (оновлюй вручну)
+SHOP_WALLET             = "TJdQGyKdMerwRaq8kzwhTx81RaZ7L91C8v"  # TRON TRC-20 USDT
+MONOBANK_MERCHANT_TOKEN = "usdt_active"   # сумісність зі старим кодом (не порожній)
+
+def uah_to_usdt(uah: float) -> float:
+    """Конвертує гривні у USDT (округлення до 2 знаків)."""
+    return round(uah / UAH_TO_USDT_RATE, 2)
+
+# Зворотна сумісність зі старими викликами uah_to_wtd
+def uah_to_wtd(uah: float) -> float:
+    return uah_to_usdt(uah)
+
+def _usdt_payment_url(amount_usdt: float, memo: str = "") -> str:
+    """Повертає TRON TRC-20 deep-link для гаманців TronLink / Trust Wallet."""
+    import urllib.parse
+    note = urllib.parse.quote(memo[:40]) if memo else ""
+    return (
+        f"tron:{SHOP_WALLET}"
+        f"?amount={amount_usdt}"
+        f"&token=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+        f"&memo={note}"
+    )
+
+
+def _open_payment_page(card_name: str, amount_usdt: float, amount_uah: float,
+                       pay_token: str) -> None:
+    import tempfile, os, urllib.parse, time as _t
+    tron_link    = (f"tron:{SHOP_WALLET}?amount={amount_usdt}"
+                    "&token=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
+    tronscan_url = f"https://tronscan.org/#/address/{SHOP_WALLET}"
+    qr_url       = (f"https://api.qrserver.com/v1/create-qr-code/?size=220x220"
+                    f"&data={urllib.parse.quote(SHOP_WALLET)}")
+    start_ts_ms  = int(_t.time() * 1000)
+    min_amt      = round(amount_usdt * 0.99, 4)
+
+    html_parts = []
+    html_parts.append("""<!DOCTYPE html>
+<html lang="uk"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d1a;color:#e0e0ff;font-family:'Segoe UI',Arial,sans-serif;
+     display:flex;justify-content:center;align-items:center;min-height:100vh;padding:12px}
+.card{background:#151530;border:2px solid #7b2fff;border-radius:18px;
+      padding:28px 24px;max-width:500px;width:100%;text-align:center;
+      box-shadow:0 0 50px #7b2fff44}
+h1{font-size:1.3rem;color:#c084fc;margin-bottom:4px}
+.sub{font-size:.83rem;color:#888;margin-bottom:14px}
+.amt{font-size:2.5rem;font-weight:700;color:#ffd700;margin:6px 0 2px}
+.uah{font-size:.85rem;color:#aaa;margin-bottom:10px}
+.wbox{background:#0a0a1c;border:1px solid #7b2fff44;border-radius:10px;
+      padding:11px;margin:10px 0;word-break:break-all;font-size:.77rem;
+      color:#a5f3fc;cursor:pointer;user-select:none}
+.wlbl{font-size:.68rem;color:#555;margin-bottom:3px}
+.cpyhint{font-size:.66rem;color:#444;margin-top:3px}
+.qr{margin:10px auto;display:block;border-radius:10px;border:3px solid #7b2fff}
+.btn{display:inline-block;margin:6px 4px;padding:11px 18px;border-radius:10px;
+     text-decoration:none;font-weight:700;font-size:.88rem;transition:.2s}
+.bp{background:#7b2fff;color:#fff}.bp:hover{background:#9b4fff}
+.bc{background:#0e7490;color:#fff}.bc:hover{background:#0891b2}
+hr{border:none;border-top:1px solid #1e1e3f;margin:14px 0}
+.steps{text-align:left;background:#0a0a1c;border-radius:10px;
+       padding:11px 14px;margin:10px 0;font-size:.8rem;line-height:2.0}
+.steps li{list-style:none}.steps li::before{content:"\u2192 ";color:#7b2fff;font-weight:700}
+.warn{font-size:.72rem;color:#f87171;margin-top:8px}
+#sbox{margin-top:14px;padding:14px;border-radius:12px;font-size:.88rem;
+      font-weight:600;min-height:56px;display:flex;align-items:center;
+      justify-content:center;gap:10px;transition:.3s;text-align:center}
+.sw{background:#111;color:#64748b;border:1px dashed #1e293b}
+.sc{background:#0f1535;color:#a78bfa;border:1px solid #7b2fff66}
+.ss{background:#022c16;color:#4ade80;border:1px solid #16a34a}
+.se{background:#2d0a0a;color:#f87171;border:1px solid #991b1b}
+.spin{width:18px;height:18px;border:3px solid #1e293b;border-top-color:#a78bfa;
+      border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+#cbtn{width:100%;padding:15px;font-size:1rem;font-weight:700;
+      background:linear-gradient(135deg,#7c3aed,#a855f7);
+      color:#fff;border:none;border-radius:12px;cursor:pointer;
+      margin-top:12px;transition:.2s;letter-spacing:.3px}
+#cbtn:hover{filter:brightness(1.12)}
+#cbtn:disabled{opacity:.45;cursor:not-allowed}
+.tmr{font-size:.7rem;color:#334155;margin-top:5px;min-height:1em}
+#done-msg{display:none;padding:18px;border-radius:14px;
+          background:#022c16;border:2px solid #16a34a;color:#4ade80;
+          font-size:1rem;font-weight:700;margin-top:12px}
+</style></head><body><div class="card">""")
+
+    html_parts.append(f'<title>\u041e\u043f\u043b\u0430\u0442\u0430 USDT TRC-20 \u2014 {card_name}</title>')
+    html_parts.append('<h1>&#x1F4B3; \u041e\u043f\u043b\u0430\u0442\u0430 USDT TRC-20</h1>')
+    html_parts.append(f'<div class="sub">\u041a\u0430\u0440\u0442\u0430: <b>{card_name}</b></div>')
+    html_parts.append(f'<div class="amt">{amount_usdt} USDT</div>')
+    html_parts.append(f'<div class="uah">&#x2248; {amount_uah} \u0433\u0440\u043d &nbsp;&middot;&nbsp; \u041c\u0435\u0440\u0435\u0436\u0430: <b>TRON (TRC-20)</b></div>')
+    html_parts.append(f'<img class="qr" src="{qr_url}" width="220" height="220" alt="QR">')
+    html_parts.append(f"""<div class="wbox" onclick="copyW()" title="Copy">
+<div class="wlbl">\u0413\u0430\u043c\u0430\u043d\u0435\u0446\u044c \u043e\u0442\u0440\u0438\u043c\u0443\u0432\u0430\u0447\u0430 (TRON TRC-20):</div>
+<span id="wa">{SHOP_WALLET}</span>
+<div class="cpyhint" id="cpyhint">&#x1F4CB; \u041d\u0430\u0442\u0438\u0441\u043d\u0438 \u0449\u043e\u0431 \u0441\u043a\u043e\u043f\u0456\u044e\u0432\u0430\u0442\u0438</div>
+</div>""")
+    html_parts.append(f'<a class="btn bp" href="{tron_link}">&#x1F7E3; TronLink / Trust Wallet</a>')
+    html_parts.append(f'<a class="btn bc" href="{tronscan_url}" target="_blank">&#x1F50D; TronScan Explorer</a>')
+    html_parts.append("""<hr><ul class="steps">
+<li>\u0421\u043a\u043e\u043f\u0456\u044e\u0439 \u0430\u0434\u0440\u0435\u0441\u0443 \u0430\u0431\u043e \u0432\u0456\u0434\u0441\u043a\u0430\u043d\u0443\u0439 QR-\u043a\u043e\u0434</li>""")
+    html_parts.append(f'<li>\u0412\u0456\u0434\u043f\u0440\u0430\u0432 \u0440\u0456\u0432\u043d\u043e <b>{amount_usdt} USDT</b> \u0447\u0435\u0440\u0435\u0437 \u043c\u0435\u0440\u0435\u0436\u0443 <b>TRON TRC-20</b></li>')
+    html_parts.append("""<li>\u0417\u0430\u0447\u0435\u043a\u0430\u0439 \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043d\u044f \u043c\u0435\u0440\u0435\u0436\u0435\u044e (1\u20133 \u0445\u0432)</li>
+<li>\u041d\u0430\u0442\u0438\u0441\u043d\u0438 &#xab;\u041f\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043e\u043f\u043b\u0430\u0442\u0443&#xbb; &mdash; \u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0437\u043d\u0430\u0439\u0434\u0435 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e \u0443 \u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d\u0456</li>
+</ul>
+<p class="warn">&#x26A0;&#xFE0F; \u041b\u0438\u0448\u0435 USDT \u0447\u0435\u0440\u0435\u0437 TRC-20. \u0406\u043d\u0448\u0430 \u043c\u043e\u043d\u0435\u0442\u0430 \u0430\u0431\u043e \u043c\u0435\u0440\u0435\u0436\u0430 &mdash; \u043a\u043e\u0448\u0442\u0438 \u043d\u0435 \u043f\u043e\u0432\u0435\u0440\u043d\u0443\u0442\u0438!</p>
+<div id="sbox" class="sw">&#x23F3; \u041e\u0447\u0456\u043a\u0443\u044e \u0432\u0430\u0448\u0443 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e&hellip;</div>
+<button id="cbtn" onclick="startCheck()">&#x1F50D; \u041f\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043e\u043f\u043b\u0430\u0442\u0443</button>
+<div class="tmr" id="tmr"></div>
+<div id="done-msg">&#x2705; \u041e\u043f\u043b\u0430\u0442\u0443 \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043e!<br>\u041f\u043e\u0432\u0435\u0440\u043d\u0456\u0442\u044c\u0441\u044f \u0434\u043e \u0433\u0440\u0438 &mdash; \u043a\u0430\u0440\u0442\u0430 \u0432\u0436\u0435 \u0443 \u041c\u041e\u042f \u0410\u0420\u041c\u0406\u042f!</div>
+</div>""")
+
+    js = f"""<script>
+var WALLET="{SHOP_WALLET}",AMT={amount_usdt},MIN_AMT={min_amt};
+var TOKEN="{pay_token}",STS={start_ts_ms},PORT=27842;
+var USDT_C="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+var busy=false,confirmed=false,autoTmr=null,cdTmr=null;
+
+function setSt(cls,html){{var b=document.getElementById("sbox");b.className="sw "+cls;b.innerHTML=html;}}
+function setBtn(t,d){{var b=document.getElementById("cbtn");b.textContent=t;b.disabled=d;}}
+function setTmr(s){{clearInterval(cdTmr);var l=s,el=document.getElementById("tmr");
+  el.textContent="&#x1F504; \u0410\u0432\u0442\u043e-\u043f\u0435\u0440\u0435\u0432\u0456\u0440\u043a\u0430 \u0447\u0435\u0440\u0435\u0437 "+l+" \u0441\u0435\u043a";
+  cdTmr=setInterval(function(){{l--;if(l<=0){{clearInterval(cdTmr);el.textContent="";}}
+  else el.textContent="&#x1F504; \u0410\u0432\u0442\u043e-\u043f\u0435\u0440\u0435\u0432\u0456\u0440\u043a\u0430 \u0447\u0435\u0440\u0435\u0437 "+l+" \u0441\u0435\u043a";}},1000);}}
+
+function copyW(){{var h=document.getElementById("cpyhint");
+  if(navigator.clipboard){{navigator.clipboard.writeText(WALLET).then(function(){{
+    h.textContent="\u2705 \u0421\u043a\u043e\u043f\u0456\u0439\u043e\u0432\u0430\u043d\u043e!";
+    setTimeout(function(){{h.textContent="&#x1F4CB; \u041d\u0430\u0442\u0438\u0441\u043d\u0438 \u0449\u043e\u0431 \u0441\u043a\u043e\u043f\u0456\u044e\u0432\u0430\u0442\u0438";}},2500);}});}}
+  else{{var el=document.createElement("textarea");el.value=WALLET;
+    document.body.appendChild(el);el.select();document.execCommand("copy");
+    document.body.removeChild(el);h.textContent="\u2705 \u0421\u043a\u043e\u043f\u0456\u0439\u043e\u0432\u0430\u043d\u043e!";
+    setTimeout(function(){{h.textContent="&#x1F4CB; \u041d\u0430\u0442\u0438\u0441\u043d\u0438 \u0449\u043e\u0431 \u0441\u043a\u043e\u043f\u0456\u044e\u0432\u0430\u0442\u0438";}},2500);}}}}
+
+function startCheck(){{
+  if(busy||confirmed)return;
+  clearInterval(autoTmr);clearInterval(cdTmr);
+  document.getElementById("tmr").textContent="";
+  busy=true;
+  setBtn("\u23F3 \u041f\u0435\u0440\u0435\u0432\u0456\u0440\u044f\u044e \u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d\u2026",true);
+  setSt("sc","<div class='spin'></div><span>\u0417\u0430\u043f\u0438\u0442 \u0434\u043e TronScan API\u2026</span>");
+  var url="https://apilist.tronscanapi.com/api/token_trc20/transfers"
+    +"?toAddress="+WALLET+"&tokens="+USDT_C
+    +"&start=0&limit=50&start_timestamp="+STS+"&direction=in";
+  var x=new XMLHttpRequest();x.open("GET",url,true);x.timeout=20000;
+  x.onload=function(){{
+    if(x.status===200){{parseResp(x.responseText);}}
+    else{{tryV2();}}
+  }};
+  x.onerror=x.ontimeout=tryV2;
+  x.send();
+}}
+
+function tryV2(){{
+  var url="https://apilist.tronscanapi.com/api/transfer/trc20"
+    +"?toAddress="+WALLET+"&contract_address="+USDT_C
+    +"&start=0&limit=50&start_timestamp="+STS;
+  var x=new XMLHttpRequest();x.open("GET",url,true);x.timeout=20000;
+  x.onload=function(){{if(x.status===200){{parseResp(x.responseText);}}else{{onNotFound();}}}}; 
+  x.onerror=x.ontimeout=onNotFound;x.send();
+}}
+
+function parseResp(json){{
+  try{{
+    var d=JSON.parse(json);
+    var txs=d.token_transfers||d.data||d.transferList||[];
+    var hash=null;
+    for(var i=0;i<txs.length;i++){{
+      var t=txs[i];
+      var raw=parseFloat(t.quant||t.amount||t.value||"0");
+      var ua=raw>=1000?raw/1e6:raw;
+      var ts=parseInt(t.block_ts||t.timestamp||t.blockTimestamp||"0");
+      if(ts>=STS&&ua>=MIN_AMT){{
+        hash=t.transaction_id||t.hash||t.transactionHash||t.txID||"ok";break;
+      }}
+    }}
+    if(hash!==null){{onFound(hash);}}else{{onNotFound();}}
+  }}catch(e){{onNotFound();}}
+}}
+
+function onFound(hash){{
+  confirmed=true;busy=false;
+  clearInterval(autoTmr);clearInterval(cdTmr);
+  document.getElementById("tmr").textContent="";
+  var sh=hash.length>20?hash.substring(0,20)+"\u2026":hash;
+  setSt("ss","\u2705 \u0422\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043e!<br><small style='opacity:.7'>TX: "+sh+"</small>");
+  var b=document.getElementById("cbtn");
+  b.textContent="\u2705 \u041e\u043f\u043b\u0430\u0442\u0430 \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u0430!";
+  b.disabled=true;b.style.background="linear-gradient(135deg,#16a34a,#22c55e)";
+  var x=new XMLHttpRequest();
+  x.open("GET","http://127.0.0.1:"+PORT+"/paid?token="+TOKEN+"&hash="+encodeURIComponent(hash),true);
+  x.timeout=5000;
+  x.onload=function(){{
+    if(x.status===200){{
+      document.getElementById("cbtn").style.display="none";
+      document.getElementById("done-msg").style.display="block";
+    }}else{{
+      setSt("ss","\u2705 \u0422\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e! \u041f\u043e\u0432\u0435\u0440\u043d\u0456\u0442\u044c\u0441\u044f \u0434\u043e \u0433\u0440\u0438 \u0456 \u043d\u0430\u0442\u0438\u0441\u043d\u0456\u0442\u044c \u2705 \u041f\u0406\u0414\u0422\u0412\u0415\u0420\u0414\u0418\u0422\u0418");
+    }}
+  }};
+  x.onerror=x.ontimeout=function(){{
+    setSt("ss","\u2705 \u0422\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e! \u041f\u043e\u0432\u0435\u0440\u043d\u0456\u0442\u044c\u0441\u044f \u0434\u043e \u0433\u0440\u0438 \u0456 \u043d\u0430\u0442\u0438\u0441\u043d\u0456\u0442\u044c \u2705 \u041f\u0406\u0414\u0422\u0412\u0415\u0420\u0414\u0418\u0422\u0418");
+  }};
+  x.send();
+}}
+
+function onNotFound(){{
+  busy=false;
+  setSt("sw","\u23F3 \u0422\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0456\u044e \u0449\u0435 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.<br><small style='opacity:.7'>\u041c\u0435\u0440\u0435\u0436\u0430 TRON \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0443\u0454 1\u20133 \u0445\u0432. \u0421\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0449\u0435.</small>");
+  setBtn("&#x1F504; \u041f\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u0449\u0435 \u0440\u0430\u0437",false);
+  setTmr(60);
+  autoTmr=setTimeout(function(){{if(!confirmed&&!busy)startCheck();}},60000);
+}}
+
+setTimeout(function(){{if(!confirmed&&!busy)startCheck();}},120000);
+setTmr(120);
+</script></body></html>"""
+
+    html_parts.append(js)
+    html = "\n".join(html_parts)
+
+    html_path = os.path.join(tempfile.gettempdir(), f"usdt_pay_{pay_token}.html")
+    with open(html_path, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    _open_url("file:///" + html_path.replace("\\", "/"))
+
+
+def _wtd_open_shop(card_name: str = "", amount_uah: float = 0.0) -> str:
+    """Зворотна сумісність — повертає адресу USDT гаманця."""
+    return SHOP_WALLET
+
+def _xsolla_create_payment(card_name: str, user_id: str = "player", amount: float = None, description: str = None) -> str:
+    """Зворотна сумісність — повертає адресу USDT гаманця."""
+    return SHOP_WALLET
+
+# ── ЛОКАЛЬНИЙ HTTP-СЕРВЕР ПІДТВЕРДЖЕННЯ ОПЛАТИ ────────────────────────────────
+import threading as _threading
+import tempfile as _tempfile
+import http.server as _http_server
+
+_PAY_SERVER_PORT = 27842
+_pay_server_instance = None
+_pay_server_thread   = None
+# Словник очікуваних токенів: token -> callback функція
+_pending_pay_tokens: dict = {}
+
+class _PayHandler(_http_server.BaseHTTPRequestHandler):
+    """Мінімальний HTTP-обробник для підтвердження оплати з браузера."""
+    def do_GET(self):
+        import urllib.parse
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        token  = params.get("token", [""])[0]
+
+        if parsed.path == "/paid" and token in _pending_pay_tokens:
+            # Записуємо файл-маркер
+            ok_path = _tempfile.gettempdir() + f"/usdt_paid_{token}.ok"
+            try:
+                with open(ok_path, "w") as f:
+                    f.write("paid")
+            except Exception:
+                pass
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(b"ok")
+        else:
+            self.send_response(404)
+            self.end_headers()
+        self.wfile.write(b"")
+
+    def log_message(self, *args):
+        pass  # тихий режим
+
+def _start_pay_server():
+    global _pay_server_instance, _pay_server_thread
+    if _pay_server_instance is not None:
+        return
+    try:
+        _pay_server_instance = _http_server.HTTPServer(("127.0.0.1", _PAY_SERVER_PORT), _PayHandler)
+        _pay_server_thread = _threading.Thread(target=_pay_server_instance.serve_forever, daemon=True)
+        _pay_server_thread.start()
+    except OSError:
+        pass  # порт вже зайнятий — сервер вже запущено
+
+# Запускаємо сервер одразу при імпорті
+_start_pay_server()
 
 ALTAR_COOLDOWN = 3600  # 1 година в секундах
 
@@ -2072,7 +2533,7 @@ class Card:
     def __init__(self, name, level, is_monster=False):
         self.original_name = name
         self.name = RENAME_DICT.get(name, name)
-        self.level = max(1, min(110, level))
+        self.level = max(1, min(120, level))  # 120 = SUPREME_MAX_LEVEL (EvII cap)
         self.xp = 0
         self.max_xp = 10
         self.rank = self._get_rank(self.level)
@@ -2123,15 +2584,30 @@ class Card:
 
     def add_divine_xp(self, amount=1):
         """Прокачка еволюціонованої карти через скормку інших карт."""
+        tier = getattr(self, 'evo_tier', 0)
+        # EvII (tier=2): cap = SUPREME_MAX_LEVEL (120)
+        if tier == 2:
+            if self.level >= SUPREME_MAX_LEVEL:
+                return False
+            self.divine_xp += amount
+            xp_needed = 100
+            if self.divine_xp >= xp_needed:
+                self.divine_xp -= xp_needed
+                self.level += 1
+                self._update_stats()
+                self.hp = min(self.hp + 800, self.max_hp)
+                return True
+            return False
+        # EvI (tier=1 або evolved): cap = DIVINE_MAX_LEVEL (110)
         if not self.evolved or self.level >= DIVINE_MAX_LEVEL:
             return False
         self.divine_xp += amount
-        xp_needed = 100  # базовий поріг (100 рівнів звичайної карти = 1 рівень Божества)
+        xp_needed = 100
         if self.divine_xp >= xp_needed:
             self.divine_xp -= xp_needed
             self.level += 1
             self._update_stats()
-            self.hp = min(self.hp + 500, self.max_hp)   # поповнюємо HP при підвищенні
+            self.hp = min(self.hp + 500, self.max_hp)
             return True
         return False
 
@@ -3793,6 +4269,12 @@ class Game:
     def __init__(self):
         self.reset_to_defaults()
         self.load_game()
+        # Перевіряємо щоденну нагороду при запуску
+        _daily_msg = self.check_daily_bonus()
+        if _daily_msg:
+            if not hasattr(self, 'achievement_queue'):
+                self.achievement_queue = []
+            self.achievement_queue.insert(0, _daily_msg)
 
     def reset_to_defaults(self):
         """Ініціалізація або повне скидання всіх параметрів гри"""
@@ -3957,7 +4439,9 @@ class Game:
         self.btn_titans     = pygame.Rect(0,0,0,0)
         self.titan_buy_rects= {}         # ректи кнопок купівлі в TITANS
         self.sounds_enabled = True
-        # --- РУНИ ---
+        self.current_lang   = "uk"   # мова інтерфейсу
+        self._lang_btns     = []     # список (rect, code) для екрану вибору мови
+        self.btn_lang       = pygame.Rect(0,0,0,0)
         self.my_runes        = []
         self.my_essences     = []
         self.essence_last_draw = 0
@@ -4006,415 +4490,230 @@ class Game:
         self.evo_rune_rects = []
         # Сундуки: last_open_time і open_anim_timer для кожного
         self.chest_last_open = {c[0]: 0 for c in CHESTS}
-        self.chest_anim     = {c[0]: 0 for c in CHESTS}   # таймштамп відкриття (для анімації)
-        self.chest_reward   = {c[0]: "" for c in CHESTS}  # текст нагороди
+        self.chest_anim     = {c[0]: 0 for c in CHESTS}
+        self.chest_reward   = {c[0]: "" for c in CHESTS}
         self.chest_rects    = {}
+        # ── Комбо-система ─────────────────────────────────────────
+        self.combo_count      = 0        # поточна серія перемог
+        self.combo_timer      = 0.0      # час останньої перемоги
+        self.combo_flash_msg  = ""       # текст що спалахує
+        self.combo_flash_t    = 0.0
+        self.total_wins       = 0        # загальна кількість перемог
+        self.total_losses     = 0
+        self.win_streak       = 0        # найдовша серія
+        self.best_win_streak  = 0
+        # ── Щоденні нагороди ──────────────────────────────────────
+        self.daily_last_claim = 0        # timestamp останнього отримання
+        self.daily_day_num    = 0        # день поспіль (1-7)
+        self.daily_claimed_today = False
+        # ── Досягнення ────────────────────────────────────────────
+        self.achievements     = {}       # {key: True/False}
+        self.achievement_queue = []      # черга спливаючих повідомлень
+        # ── EvII ефекти ───────────────────────────────────────────
+        self.evii_flash_cards = {}       # {card: flash_end_time}
+        # ── Статистика ────────────────────────────────────────────
+        self.battles_fought   = 0
+        self.cards_evolved    = 0
+        self.gold_earned      = 0
 
     def reset_progress(self):
         """Функція для повного очищення прогресу та файлу збереження"""
-        if os.path.exists("savegame.json"):
-            os.remove("savegame.json")
+        import pathlib
+        # Видаляємо основний save
+        _save_path = self._get_save_path()
+        if os.path.exists(_save_path):
+            os.remove(_save_path)
+        # Видаляємо резервний save
+        _home_save = os.path.join(str(pathlib.Path.home()), "savegame_arena.json")
+        if os.path.exists(_home_save):
+            os.remove(_home_save)
         self.reset_to_defaults()
         self.state = MENU
 
     def _do_supreme_payment(self, card):
         """
-        Створює інвойс через Monobank Acquiring API (еквайринговий токен).
-        POST https://api.monobank.ua/api/merchant/invoice/create
-        Відкриває платіжну сторінку у браузері.
+        Еволюція EvII за USDT TRC-20.
+        Відкриває браузер з формою оплати.
+        Після натискання «Я ОПЛАТИВ» у браузері — карта з'являється в армії.
         """
-        import threading, urllib.request, urllib.error, json as _json, random as _rand
-
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        if not token:
-            self.supreme_msg = "❌ Немає еквайрингового токена!"; return
-
-        # Унікальний reference для цього платежу
-        ref = f"EvII-{card.original_name[:10]}-{_rand.randint(10000,99999)}"
-        self._supreme_pay_ref  = ref
-        self._pending_supreme_card = card
-        self._pending_supreme_invoice = ""
-        self.supreme_msg = "⏳ Створюємо платіжний рахунок..."
-
-        payload = _json.dumps({
-            "amount":   SUPREME_PRICE_UAH * 100,   # копійки
-            "ccy":      980,                         # UAH
-            "merchantPaymInfo": {
-                "reference":   ref,
-                "destination": f"Верховна Еволюція карти {card.name} (EvII)"
-            },
-            "redirectUrl": "https://monobank.ua",
-            "validity":    3600                      # рахунок дійсний 1 годину
-        }).encode("utf-8")
-
-        def _thread():
-            try:
-                req = urllib.request.Request(
-                    "https://api.monobank.ua/api/merchant/invoice/create",
-                    data    = payload,
-                    headers = {
-                        "X-Token":      token,
-                        "Content-Type": "application/json"
-                    },
-                    method  = "POST"
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = _json.loads(resp.read().decode())
-
-                page_url   = data.get("pageUrl", "")
-                invoice_id = data.get("invoiceId", "")
-
-                if page_url and invoice_id:
-                    self._pending_supreme_invoice = invoice_id
-                    _open_url(page_url)
-                    self.supreme_msg = (
-                        f"✅ Платіжну сторінку відкрито у браузері!\n"
-                        f"Сума: {SUPREME_PRICE_UAH} грн · Ref: {ref}\n"
-                        f"Після оплати натисни  🔍 ПЕРЕВІРИТИ"
-                    )
-                else:
-                    err = data.get("errText", str(data))
-                    self.supreme_msg = f"❌ Monobank: {err}"
-
-            except urllib.error.HTTPError as e:
-                try:    body = _json.loads(e.read().decode())
-                except: body = {}
-                err = body.get("errText", f"HTTP {e.code}")
-                self.supreme_msg = f"❌ Помилка {e.code}: {err}"
-            except Exception as e:
-                self.supreme_msg = f"❌ {str(e)[:80]}"
-
-        threading.Thread(target=_thread, daemon=True).start()
+        import random as _r, os, tempfile
+        usdt_amount = uah_to_usdt(SUPREME_PRICE_UAH)
+        pay_token = f"{_r.randint(10000000,99999999):08d}"
+        self._pending_supreme_card    = card
+        self._pending_supreme_invoice = SHOP_WALLET
+        self._pending_supreme_token   = pay_token
+        self._pending_supreme_ok_file = os.path.join(
+            tempfile.gettempdir(), f"usdt_paid_{pay_token}.ok")
+        _pending_pay_tokens[pay_token] = "supreme"
+        # Відкриваємо браузер з формою оплати
+        _open_payment_page(card.name, usdt_amount, SUPREME_PRICE_UAH, pay_token)
+        self.supreme_msg = (
+            f"🌐 Браузер відкрито — заплати {usdt_amount} USDT\n"
+            f"Після оплати натисни у браузері «Я ОПЛАТИВ»\n"
+            f"або натисни ✅ ПІДТВЕРДИТИ тут"
+        )
 
     def _check_supreme_payment(self):
         """
-        Перевіряє статус інвойса через Monobank Acquiring API.
-        GET https://api.monobank.ua/api/merchant/invoice/status?invoiceId=...
-        Можливі статуси: created | processing | hold | success | failure | reversed | expired
+        Підтверджує оплату USDT TRC-20 і активує EvII для карти.
+        Перевіряє файл-маркер від браузерної сторінки або приймає ручне підтвердження.
         """
-        import threading, urllib.request, urllib.error, json as _json
-
-        token      = MONOBANK_MERCHANT_TOKEN.strip()
-        invoice_id = getattr(self, "_pending_supreme_invoice", "")
-        card       = getattr(self, "_pending_supreme_card", None)
-
+        import os
+        card = getattr(self, "_pending_supreme_card", None)
         if not card:
             self.supreme_msg = "❌ Спочатку натисни кнопку оплати!"; return
-        if not token:
-            self.supreme_msg = "❌ Немає еквайрингового токена!"; return
-        if not invoice_id:
-            self.supreme_msg = "❌ Рахунок ще не створено. Натисни оплату ще раз!"; return
+        # Перевіряємо файл-маркер від браузера
+        ok_file = getattr(self, "_pending_supreme_ok_file", "")
+        if ok_file and not os.path.exists(ok_file):
+            self.supreme_msg = (
+                "\u274c \u041e\u043f\u043b\u0430\u0442\u0443 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0443 \u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d\u0456.\n"
+                "\u041f\u043e\u0432\u0435\u0440\u043d\u0438\u0441\u044c \u0434\u043e \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430: \u043d\u0430\u0442\u0438\u0441\u043d\u0438 '\u041f\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043e\u043f\u043b\u0430\u0442\u0443' \u043f\u0456\u0441\u043b\u044f \u0432\u0456\u0434\u043f\u0440\u0430\u0432\u043a\u0438 USDT."
+            )
+            return
+        # Очищаємо маркер
+        if ok_file and os.path.exists(ok_file):
+            try: os.remove(ok_file)
+            except Exception: pass
+        tok = getattr(self, "_pending_supreme_token", "")
+        if tok in _pending_pay_tokens:
+            del _pending_pay_tokens[tok]
+        self._supreme_confirm_tries = 0
 
-        self.supreme_msg = "⏳ Перевіряємо статус оплати..."
-
-        def _thread():
-            try:
-                url = f"https://api.monobank.ua/api/merchant/invoice/status?invoiceId={invoice_id}"
-                req = urllib.request.Request(
-                    url,
-                    headers = {"X-Token": token},
-                    method  = "GET"
-                )
-                with urllib.request.urlopen(req, timeout=12) as resp:
-                    data = _json.loads(resp.read().decode())
-
-                status = data.get("status", "")
-                amount = data.get("amount", 0)   # копійки
-
-                if status == "success":
-                    # Гроші на рахунку — активуємо EvII
-                    card.evo_tier   = 2
-                    card.evolved    = True
-                    card.divine_xp  = 0
-                    card._update_stats()
-                    card.hp = card.max_hp
-                    self._pending_supreme_card    = None
-                    self._pending_supreme_invoice = ""
-                    self._supreme_pay_ref         = ""
-                    self.supreme_evo_sel          = None
-                    self.supreme_msg = (
-                        f"✅ Оплата {amount//100} грн підтверджена!\n"
-                        f"{card.name} → EvII 👑 (рівні 111-120 розблоковано)"
-                    )
-                    self.save_game()
-
-                elif status == "processing":
-                    self.supreme_msg = "⏳ Оплата обробляється банком… Спробуй ще раз через хвилину."
-
-                elif status == "hold":
-                    self.supreme_msg = "⏳ Кошти утримуються. Підтвердження незабаром."
-
-                elif status == "created":
-                    self.supreme_msg = (
-                        f"⏳ Рахунок створено, але оплата ще не надійшла.\n"
-                        f"Ref: {getattr(self,'_supreme_pay_ref','')}"
-                    )
-
-                elif status == "failure":
-                    self.supreme_msg = "❌ Оплата відхилена банком. Спробуй іншу картку."
-
-                elif status == "reversed":
-                    self.supreme_msg = "❌ Оплату скасовано (reversed)."
-
-                elif status == "expired":
-                    self.supreme_msg = "❌ Рахунок прострочений. Натисни кнопку оплати ще раз."
-                    self._pending_supreme_invoice = ""
-
-                else:
-                    self.supreme_msg = f"❓ Невідомий статус: {status}"
-
-            except urllib.error.HTTPError as e:
-                try:    body = _json.loads(e.read().decode())
-                except: body = {}
-                err = body.get("errText", f"HTTP {e.code}")
-                if e.code == 429:
-                    self.supreme_msg = "⏳ Занадто багато запитів — зачекай 1 хв."
-                else:
-                    self.supreme_msg = f"❌ {err}"
-            except Exception as e:
-                self.supreme_msg = f"❌ {str(e)[:80]}"
-
-        threading.Thread(target=_thread, daemon=True).start()
+        card.evo_tier  = 2
+        card.evolved   = True
+        card.divine_xp = 0
+        card._update_stats()
+        card.hp = card.max_hp
+        if not any(h is card for h in self.army):
+            self.army.append(card)
+        self._pending_supreme_card    = None
+        self._pending_supreme_invoice = ""
+        self._supreme_pay_ref         = ""
+        self.supreme_evo_sel          = None
+        # EvII ефект спалаху
+        _evii_flash = getattr(self, 'evii_flash_cards', {})
+        _evii_flash[id(card)] = time.time() + 5.0  # 5 сек ефект
+        self.evii_flash_cards = _evii_flash
+        # Лічильник еволюцій
+        self.cards_evolved = getattr(self, 'cards_evolved', 0) + 1
+        # Досягнення за EvII
+        _ach = getattr(self, 'achievements', {})
+        if not _ach.get('first_evii'):
+            _ach['first_evii'] = True
+            getattr(self, 'achievement_queue', []).append("👑 Перша EvII еволюція!")
+        self.achievements = _ach
+        self.supreme_msg = (
+            f"\u2705 {SUPREME_PRICE_UAH} \u0433\u0440\u043d \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043e! "
+            f"{card.name} \u2192 EvII \U0001f451 \u0432\u0436\u0435 \u0443 \u041c\u041e\u042f \u0410\u0420\u041c\u0406\u042f!"
+        )
+        self.save_game()
 
     def _sh_buy_payment(self, sh_data):
-        """Monobank платіж за карту Супер Людей."""
-        import threading, urllib.request, urllib.error, json as _json, random as _rand
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        if not token: self.sh_pay_msg = "❌ Немає токена!"; return
+        """USDT TRC-20 оплата за карту Супер Людей — відкриває браузер."""
+        import random as _r, os, tempfile
         orig, name, lvl, shard_cost, uah_price = sh_data
-        ref = f"SH-{orig[:10]}-{_rand.randint(10000,99999)}"
-        self._sh_pay_ref = ref; self._sh_pay_pending_card = sh_data; self._sh_pay_pending_invoice = ""
-        self.sh_pay_msg = "⏳ Створюємо рахунок..."
-        payload = _json.dumps({
-            "amount": uah_price*100, "ccy": 980,
-            "merchantPaymInfo": {"reference": ref, "destination": f"Карта {name} (Супер Люди)"},
-            "redirectUrl": "https://monobank.ua", "validity": 3600
-        }).encode("utf-8")
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    "https://api.monobank.ua/api/merchant/invoice/create",
-                    data=payload, method="POST",
-                    headers={"X-Token": token, "Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = _json.loads(resp.read().decode())
-                page_url = data.get("pageUrl",""); inv_id = data.get("invoiceId","")
-                if page_url:
-                    self._sh_pay_pending_invoice = inv_id
-                    _open_url(page_url)
-                    self.sh_pay_msg = f"✅ Браузер відкрито!\nСума: {uah_price} грн · {name}\nНатисни ПЕРЕВІРИТИ після оплати"
-                else:
-                    self.sh_pay_msg = f"❌ {data.get('errText','Помилка')}"
-            except urllib.error.HTTPError as e:
-                try: body=_json.loads(e.read().decode())
-                except: body={}
-                self.sh_pay_msg = f"❌ HTTP {e.code}: {body.get('errText',str(e))}"
-            except Exception as e: self.sh_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
+        usdt_price = uah_to_usdt(uah_price)
+        pay_token = f"{_r.randint(10000000,99999999):08d}"
+        self._sh_pay_pending_card    = sh_data
+        self._sh_pay_pending_invoice = SHOP_WALLET
+        self._sh_pay_token   = pay_token
+        self._sh_pay_ok_file = os.path.join(
+            tempfile.gettempdir(), f"usdt_paid_{pay_token}.ok")
+        _pending_pay_tokens[pay_token] = "sh"
+        _open_payment_page(name, usdt_price, uah_price, pay_token)
+        self.sh_pay_msg = (
+            f"🌐 Браузер відкрито — заплати {usdt_price} USDT за {name}\n"
+            f"Після оплати натисни у браузері «Я ОПЛАТИВ»\n"
+            f"або натисни ✅ ПІДТВЕРДИТИ тут"
+        )
 
     def _sh_check_payment(self):
-        """Перевіряє статус оплати за карту Супер Людей."""
-        import threading, urllib.request, urllib.error, json as _json
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        inv_id = getattr(self,'_sh_pay_pending_invoice','')
+        """Підтверджує оплату USDT TRC-20 для Супер Людей (перевіряє маркер браузера)."""
+        import os
         sh_data = getattr(self,'_sh_pay_pending_card',None)
-        if not inv_id or not sh_data:
-            self.sh_pay_msg = "❌ Немає активного рахунку. Натисни КУПИТИ."; return
-        self.sh_pay_msg = "⏳ Перевіряємо..."
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    f"https://api.monobank.ua/api/merchant/invoice/status?invoiceId={inv_id}",
-                    headers={"X-Token": token}, method="GET")
-                with urllib.request.urlopen(req, timeout=12) as resp:
-                    data = _json.loads(resp.read().decode())
-                status = data.get("status","")
-                orig4,name4,*_ = sh_data
-                if status == "success":
-                    if orig4 not in self.unlocked_super_humans:
-                        self.unlocked_super_humans.append(orig4)
-                        _paid_card = create_super_human_card(sh_data)
-                        self.all_heroes.append(_paid_card)
-                    self._sh_pay_pending_invoice = ""; self._sh_pay_pending_card = None
-                    self.sh_sel = None
-                    self.sh_pay_msg = (f"✅ Оплата підтверджена! {name4} у МОЯ АРМІЯ! 🦸\n"
-                                       f"Карта Lv1. Здібності відкриються з Lv20.")
-                    self.save_game()
-                elif status in ("created","processing","hold"):
-                    self.sh_pay_msg = f"⏳ Статус: {status}. Зачекай або оплати."
-                elif status == "failure": self.sh_pay_msg = "❌ Оплату відхилено."
-                elif status == "expired":
-                    self.sh_pay_msg = "❌ Прострочено. Натисни КУПИТИ знову."
-                    self._sh_pay_pending_invoice = ""
-                else: self.sh_pay_msg = f"❓ {status}"
-            except urllib.error.HTTPError as e:
-                self.sh_pay_msg = f"❌ HTTP {e.code}" + (" (rate limit)" if e.code==429 else "")
-            except Exception as e: self.sh_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
-
-
-    def _arch_buy_payment(self, ar_data):
-        """Monobank платіж за карту Архангели та Архдемони."""
-        import threading, urllib.request, urllib.error, json as _json, random as _rand
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        if not token: self.arch_pay_msg = "❌ Немає токена!"; return
-        orig, name, lvl, shard_cost, uah_price = ar_data
-        ref = f"AR-{orig[:10]}-{_rand.randint(10000,99999)}"
-        self._arch_pay_ref = ref; self._arch_pay_pending_card = ar_data
-        self._arch_pay_pending_invoice = ""
-        self.arch_pay_msg = "⏳ Створюємо рахунок..."
-        payload = _json.dumps({
-            "amount": uah_price * 100, "ccy": 980,
-            "merchantPaymInfo": {"reference": ref,
-                                  "destination": f"Карта {name} (Архангели та Архдемони)"},
-            "redirectUrl": "https://monobank.ua", "validity": 3600
-        }).encode("utf-8")
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    "https://api.monobank.ua/api/merchant/invoice/create",
-                    data=payload, method="POST",
-                    headers={"X-Token": token, "Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = _json.loads(resp.read().decode())
-                page_url = data.get("pageUrl", ""); inv_id = data.get("invoiceId", "")
-                if page_url:
-                    self._arch_pay_pending_invoice = inv_id
-                    _open_url(page_url)
-                    self.arch_pay_msg = (f"✅ Браузер відкрито!\nСума: {uah_price} грн · {name}\nНатисни ПЕРЕВІРИТИ після оплати")
-                else:
-                    self.arch_pay_msg = f"❌ {data.get('errText','Помилка')}"
-            except urllib.error.HTTPError as e:
-                try: body = _json.loads(e.read().decode())
-                except: body = {}
-                self.arch_pay_msg = f"❌ HTTP {e.code}: {body.get('errText', str(e))}"
-            except Exception as e:
-                self.arch_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
-
-    def _arch_check_payment(self):
-        """Перевіряє статус оплати за карту Архангели та Архдемони."""
-        import threading, urllib.request, urllib.error, json as _json
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        inv_id  = getattr(self, '_arch_pay_pending_invoice', '')
-        ar_data = getattr(self, '_arch_pay_pending_card', None)
-        if not inv_id or not ar_data:
-            self.arch_pay_msg = "❌ Немає активного рахунку. Натисни КУПИТИ."; return
-        self.arch_pay_msg = "⏳ Перевіряємо..."
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    f"https://api.monobank.ua/api/merchant/invoice/status?invoiceId={inv_id}",
-                    headers={"X-Token": token}, method="GET")
-                with urllib.request.urlopen(req, timeout=12) as resp:
-                    data = _json.loads(resp.read().decode())
-                status = data.get("status", "")
-                orig_a, name_a, *_ = ar_data
-                if status == "success":
-                    if orig_a not in self.unlocked_arch:
-                        self.unlocked_arch.append(orig_a)
-                        _paid_ar = create_arch_card(ar_data)
-                        self.all_heroes.append(_paid_ar)
-                    self._arch_pay_pending_invoice = ""; self._arch_pay_pending_card = None
-                    self.arch_sel = None
-                    self.arch_pay_msg = (f"✅ Оплата підтверджена! {name_a} у МОЯ АРМІЯ! 😇\n"
-                                         f"Карта Lv1. Прокачка у ЕВОЛЮЦІЯ РІВНЯ БОЖЕСТВ.")
-                    self.save_game()
-                elif status in ("created", "processing", "hold"):
-                    self.arch_pay_msg = f"⏳ Статус: {status}. Зачекай або оплати."
-                elif status == "failure":
-                    self.arch_pay_msg = "❌ Оплату відхилено."
-                elif status == "expired":
-                    self.arch_pay_msg = "❌ Прострочено. Натисни КУПИТИ знову."
-                    self._arch_pay_pending_invoice = ""
-                else:
-                    self.arch_pay_msg = f"❓ {status}"
-            except urllib.error.HTTPError as e:
-                self.arch_pay_msg = f"❌ HTTP {e.code}" + (" (rate limit)" if e.code == 429 else "")
-            except Exception as e:
-                self.arch_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
+        if not sh_data:
+            self.sh_pay_msg = "❌ Немає активного платежу. Натисни КУПИТИ."; return
+        ok_file = getattr(self, "_sh_pay_ok_file", "")
+        if ok_file and not os.path.exists(ok_file):
+            self.sh_pay_msg = (
+                "\u274c \u041e\u043f\u043b\u0430\u0442\u0443 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0443 \u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d\u0456.\n"
+                "\u041f\u043e\u0432\u0435\u0440\u043d\u0438\u0441\u044c \u0434\u043e \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u0456 \u043d\u0430\u0442\u0438\u0441\u043d\u0438 '\u041f\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043e\u043f\u043b\u0430\u0442\u0443' \u043f\u0456\u0441\u043b\u044f \u0432\u0456\u0434\u043f\u0440\u0430\u0432\u043a\u0438 USDT."
+            )
+            return
+        if ok_file and os.path.exists(ok_file):
+            try: os.remove(ok_file)
+            except Exception: pass
+        tok = getattr(self, "_sh_pay_token", "")
+        if tok in _pending_pay_tokens:
+            del _pending_pay_tokens[tok]
+        self._sh_confirm_tries = 0
+        orig4, name4, lvl4, shard4, uah4 = sh_data
+        if orig4 not in self.unlocked_super_humans:
+            self.unlocked_super_humans.append(orig4)
+        _paid_card = next(
+            (h for h in self.all_heroes
+             if getattr(h,"original_name","") == orig4
+             or getattr(h,"name","") == name4), None)
+        if _paid_card is None:
+            _paid_card = create_super_human_card(sh_data)
+            _paid_card.original_name = orig4
+            self.all_heroes.append(_paid_card)
+        if not any(h is _paid_card for h in self.army):
+            self.army.append(_paid_card)
+        self._sh_pay_pending_invoice = ""; self._sh_pay_pending_card = None
+        self.sh_sel = None
+        self.sh_pay_msg = f"✅ {name4} у МОЯ АРМІЯ! 🦸 Карта Lv1 вже там!"
+        self.save_game()
 
     def _arch_buy_payment(self, ar_data):
-        """Monobank платіж за карту Архангели та Архдемони."""
-        import threading, urllib.request, urllib.error, json as _json, random as _rand
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        if not token: self.arch_pay_msg = "❌ Немає токена!"; return
+        """USDT TRC-20 оплата за карту Архангели та Архдемони — відкриває браузер."""
+        import random as _r, os, tempfile
         orig, name, lvl, shard_cost, uah_price = ar_data
-        ref = f"AR-{orig[:10]}-{_rand.randint(10000,99999)}"
-        self._arch_pay_ref = ref; self._arch_pay_pending_card = ar_data
-        self._arch_pay_pending_invoice = ""
-        self.arch_pay_msg = "⏳ Створюємо рахунок..."
-        payload = _json.dumps({
-            "amount": uah_price * 100, "ccy": 980,
-            "merchantPaymInfo": {"reference": ref,
-                                 "destination": f"Карта {name} (Архангели та Архдемони)"},
-            "redirectUrl": "https://monobank.ua", "validity": 3600
-        }).encode("utf-8")
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    "https://api.monobank.ua/api/merchant/invoice/create",
-                    data=payload, method="POST",
-                    headers={"X-Token": token, "Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    data = _json.loads(resp.read().decode())
-                page_url = data.get("pageUrl", ""); inv_id = data.get("invoiceId", "")
-                if page_url:
-                    self._arch_pay_pending_invoice = inv_id
-                    _open_url(page_url)
-                    self.arch_pay_msg = (f"✅ Браузер відкрито!\nСума: {uah_price} грн · {name}\nНатисни ПЕРЕВІРИТИ після оплати")
-                else:
-                    self.arch_pay_msg = f"❌ {data.get('errText','Помилка')}"
-            except urllib.error.HTTPError as e:
-                try: body = _json.loads(e.read().decode())
-                except: body = {}
-                self.arch_pay_msg = f"❌ HTTP {e.code}: {body.get('errText', str(e))}"
-            except Exception as e: self.arch_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
+        usdt_price = uah_to_usdt(uah_price)
+        pay_token = f"{_r.randint(10000000,99999999):08d}"
+        self._arch_pay_pending_card    = ar_data
+        self._arch_pay_pending_invoice = SHOP_WALLET
+        self._arch_pay_token   = pay_token
+        self._arch_pay_ok_file = os.path.join(
+            tempfile.gettempdir(), f"usdt_paid_{pay_token}.ok")
+        _pending_pay_tokens[pay_token] = "arch"
+        _open_payment_page(name, usdt_price, uah_price, pay_token)
+        self.arch_pay_msg = (
+            f"🌐 Браузер відкрито — заплати {usdt_price} USDT за {name}\n"
+            f"Після оплати натисни у браузері «Я ОПЛАТИВ»\n"
+            f"або натисни ✅ ПІДТВЕРДИТИ тут"
+        )
 
     def _arch_check_payment(self):
-        """Перевіряє статус оплати за карту Архангели та Архдемони."""
-        import threading, urllib.request, urllib.error, json as _json
-        token = MONOBANK_MERCHANT_TOKEN.strip()
-        inv_id = getattr(self, '_arch_pay_pending_invoice', '')
+        """Підтверджує оплату USDT TRC-20 для Архангелів (перевіряє маркер браузера)."""
+        import os
         ar_data = getattr(self, '_arch_pay_pending_card', None)
-        if not inv_id or not ar_data:
-            self.arch_pay_msg = "❌ Немає активного рахунку. Натисни КУПИТИ."; return
-        self.arch_pay_msg = "⏳ Перевіряємо..."
-        def _t():
-            try:
-                req = urllib.request.Request(
-                    f"https://api.monobank.ua/api/merchant/invoice/status?invoiceId={inv_id}",
-                    headers={"X-Token": token}, method="GET")
-                with urllib.request.urlopen(req, timeout=12) as resp:
-                    data = _json.loads(resp.read().decode())
-                status = data.get("status", "")
-                orig_a, name_a, *_ = ar_data
-                if status == "success":
-                    if orig_a not in self.unlocked_arch:
-                        self.unlocked_arch.append(orig_a)
-                        _paid = create_arch_card(ar_data)
-                        self.all_heroes.append(_paid)
-                    self._arch_pay_pending_invoice = ""; self._arch_pay_pending_card = None
-                    self.arch_sel = None
-                    self.arch_pay_msg = (f"✅ Оплата підтверджена! {name_a} у МОЯ АРМІЯ! 😇\n"
-                                         f"Карта Lv1. Здібності відкриються з Lv5.")
-                    self.save_game()
-                elif status in ("created", "processing", "hold"):
-                    self.arch_pay_msg = f"⏳ Статус: {status}. Зачекай або оплати."
-                elif status == "failure":
-                    self.arch_pay_msg = "❌ Оплату відхилено."
-                elif status == "expired":
-                    self.arch_pay_msg = "❌ Прострочено. Натисни КУПИТИ знову."
-                    self._arch_pay_pending_invoice = ""
-                else:
-                    self.arch_pay_msg = f"❓ {status}"
-            except urllib.error.HTTPError as e:
-                self.arch_pay_msg = f"❌ HTTP {e.code}" + (" (rate limit)" if e.code == 429 else "")
-            except Exception as e: self.arch_pay_msg = f"❌ {str(e)[:70]}"
-        threading.Thread(target=_t, daemon=True).start()
-
+        if not ar_data:
+            self.arch_pay_msg = "❌ Немає активного платежу. Натисни КУПИТИ."; return
+        ok_file = getattr(self, "_arch_pay_ok_file", "")
+        if ok_file and not os.path.exists(ok_file):
+            self.arch_pay_msg = (
+                "\u274c \u041e\u043f\u043b\u0430\u0442\u0443 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0443 \u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d\u0456.\n"
+                "\u041f\u043e\u0432\u0435\u0440\u043d\u0438\u0441\u044c \u0434\u043e \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u0456 \u043d\u0430\u0442\u0438\u0441\u043d\u0438 '\u041f\u0435\u0440\u0456\u0432\u0456\u0440\u0438\u0442\u0438 \u043e\u043f\u043b\u0430\u0442\u0443' \u043f\u0456\u0441\u043b\u044f \u0432\u0456\u0434\u043f\u0440\u0430\u0432\u043a\u0438 USDT."
+            )
+            return
+        if ok_file and os.path.exists(ok_file):
+            try: os.remove(ok_file)
+            except Exception: pass
+        tok = getattr(self, "_arch_pay_token", "")
+        if tok in _pending_pay_tokens:
+            del _pending_pay_tokens[tok]
+        self._arch_confirm_tries = 0
+        orig_a, name_a, lvl_a, shard_a, uah_a = ar_data
+        if orig_a not in self.unlocked_arch:
+            self.unlocked_arch.append(orig_a)
+            _paid = create_arch_card(ar_data)
+            self.all_heroes.append(_paid)
+        self._arch_pay_pending_invoice = ""; self._arch_pay_pending_card = None
+        self.arch_sel = None
+        self.arch_pay_msg = (f"✅ Оплату підтверджено! {name_a} у МОЯ АРМІЯ! "
+                             f"Карта Lv1. Здібності відкриються з Lv5.")
+        self.save_game()
     def _lucky_refresh_if_needed(self):
         """Оновлює спроби Монополії та Фортуни раз у 12 годин."""
         import time as _t
@@ -4430,175 +4729,428 @@ class Game:
             self.save_game()
         return _now - _last, _INTERVAL  # (пройшло, інтервал)
 
+    def _check_pending_payments(self):
+        """Автоматично перевіряє файли-маркери оплати (викликається щосекунди)."""
+        import os, time
+        now = time.time()
+        last = getattr(self, "_last_pay_check", 0)
+        if now - last < 1.0:
+            return
+        self._last_pay_check = now
+
+        # ── Верховна еволюція ──
+        ok_s = getattr(self, "_pending_supreme_ok_file", "")
+        if ok_s and os.path.exists(ok_s) and getattr(self, "_pending_supreme_card", None):
+            try: os.remove(ok_s)
+            except Exception: pass
+            tok = getattr(self, "_pending_supreme_token", "")
+            if tok in _pending_pay_tokens: del _pending_pay_tokens[tok]
+            card = self._pending_supreme_card
+            card.evo_tier  = 2
+            card.evolved   = True
+            card.divine_xp = 0
+            card._update_stats()
+            card.hp = card.max_hp
+            if not any(h is card for h in self.army):
+                self.army.append(card)
+            self._pending_supreme_card    = None
+            self._pending_supreme_invoice = ""
+            self._pending_supreme_ok_file = ""
+            self._pending_supreme_token   = ""
+            self.supreme_evo_sel = None
+            _evii_flash = getattr(self, 'evii_flash_cards', {})
+            _evii_flash[id(card)] = time.time() + 5.0
+            self.evii_flash_cards = _evii_flash
+            self.cards_evolved = getattr(self, 'cards_evolved', 0) + 1
+            _ach = getattr(self, 'achievements', {})
+            if not _ach.get('first_evii'):
+                _ach['first_evii'] = True
+                getattr(self, 'achievement_queue', []).append("👑 Перша EvII еволюція!")
+            self.achievements = _ach
+            self.supreme_msg = f"✅ Оплату підтверджено! {card.name} → EvII 👑 у МОЯ АРМІЯ!"
+            self.save_game()
+
+        # ── Карти Супер Людей ──
+        ok_sh = getattr(self, "_sh_pay_ok_file", "")
+        if ok_sh and os.path.exists(ok_sh) and getattr(self, "_sh_pay_pending_card", None):
+            try: os.remove(ok_sh)
+            except Exception: pass
+            tok = getattr(self, "_sh_pay_token", "")
+            if tok in _pending_pay_tokens: del _pending_pay_tokens[tok]
+            sh_data = self._sh_pay_pending_card
+            orig4, name4, lvl4, shard4, uah4 = sh_data
+            if orig4 not in self.unlocked_super_humans:
+                self.unlocked_super_humans.append(orig4)
+            _paid_card = next(
+                (h for h in self.all_heroes
+                 if getattr(h, "original_name", "") == orig4
+                 or getattr(h, "name", "") == name4), None)
+            if _paid_card is None:
+                _paid_card = create_super_human_card(sh_data)
+                _paid_card.original_name = orig4
+                self.all_heroes.append(_paid_card)
+            if not any(h is _paid_card for h in self.army):
+                self.army.append(_paid_card)
+            self._sh_pay_pending_card    = None
+            self._sh_pay_pending_invoice = ""
+            self._sh_pay_ok_file = ""
+            self._sh_pay_token   = ""
+            self.sh_sel = None
+            self.sh_pay_msg = f"✅ {name4} у МОЯ АРМІЯ! 🦸 Оплату підтверджено автоматично!"
+            self.save_game()
+
+        # ── Карти Архангели та Архдемони ──
+        ok_ar = getattr(self, "_arch_pay_ok_file", "")
+        if ok_ar and os.path.exists(ok_ar) and getattr(self, "_arch_pay_pending_card", None):
+            try: os.remove(ok_ar)
+            except Exception: pass
+            tok = getattr(self, "_arch_pay_token", "")
+            if tok in _pending_pay_tokens: del _pending_pay_tokens[tok]
+            ar_data = self._arch_pay_pending_card
+            orig_a, name_a, lvl_a, shard_a, uah_a = ar_data
+            if orig_a not in self.unlocked_arch:
+                self.unlocked_arch.append(orig_a)
+                _paid = create_arch_card(ar_data)
+                self.all_heroes.append(_paid)
+            self._arch_pay_pending_card    = None
+            self._arch_pay_pending_invoice = ""
+            self._arch_pay_ok_file = ""
+            self._arch_pay_token   = ""
+            self.arch_sel = None
+            self.arch_pay_msg = f"✅ {name_a} у МОЯ АРМІЯ! 😇 Оплату підтверджено автоматично!"
+            self.save_game()
+
     def save_game(self):
+        import pathlib
         save_data = {
-            "gold": self.gold, "diamonds": self.diamonds, "ore": self.ore, "keys": self.keys,
-            "selected_world": self.selected_world, "selected_location": self.selected_location,
-            "completed_levels": self.completed_levels,
+            # ── Ресурси ──────────────────────────────────────────────────
+            "gold":               self.gold,
+            "diamonds":           self.diamonds,
+            "ore":                self.ore,
+            "keys":               self.keys,
+            # ── Прогрес світів ───────────────────────────────────────────
+            "selected_world":     self.selected_world,
+            "selected_location":  self.selected_location,
+            "completed_levels":   self.completed_levels,
+            "sh_selected_world":  getattr(self, "sh_selected_world", 1),
+            "sh_selected_location": getattr(self, "sh_selected_location", 1),
+            "sh_completed_levels": getattr(self, "sh_completed_levels", {}),
+            "ad_selected_world":  getattr(self, "ad_selected_world", 1),
+            "ad_selected_location": getattr(self, "ad_selected_location", 1),
+            "ad_completed_levels": getattr(self, "ad_completed_levels", {}),
+            "victory_location_wins": getattr(self, "victory_location_wins", {}),
+            # ── Налаштування ─────────────────────────────────────────────
+            "music_enabled":      getattr(self, "music_enabled", True),
+            "sounds_enabled":     getattr(self, "sounds_enabled", True),
+            "current_lang":       getattr(self, "current_lang", "uk"),
+            # ── Сундуки ──────────────────────────────────────────────────
+            "chest_last_open":    self.chest_last_open,
+            # ── Вівтар ───────────────────────────────────────────────────
             "altar_last_draw_time": self.altar_last_draw_time,
-            "chest_last_open": self.chest_last_open,
-            "titan_level": self.titan_level, "titan_xp": self.titan_xp, "titan_levels": self.titan_levels,
-            "titan_id": self.titan_id, "owned_titans": self.owned_titans,
-            "titan_shards": self.titan_shards,
+            # ── Тітани ───────────────────────────────────────────────────
+            "titan_level":        self.titan_level,
+            "titan_xp":           self.titan_xp,
+            "titan_levels":       self.titan_levels,
+            "titan_id":           self.titan_id,
+            "owned_titans":       self.owned_titans,
+            "titan_shards":       self.titan_shards,
             "titan_refresh_time": self.titan_refresh_time,
-            "titan_monster_hp": self.titan_monster_hp,
-            "all_heroes": [{"name": h.original_name, "level": h.level, "xp": h.xp,
-                             "runes": getattr(h, "runes", []),
-                             "evolved": getattr(h, "evolved", False),
-                             "evo_tier": getattr(h, "evo_tier", 0),
-                             "divine_xp": getattr(h, "divine_xp", 0),
-                             "ability_levels": getattr(h, "ability_levels", {})}
-                            for h in self.all_heroes if not getattr(h, '_super_human', False)],
-            "graveyard": [{"name": h.original_name, "level": h.level, "xp": h.xp} for h in self.graveyard],
-            "my_runes": self.my_runes,
-            "titan_runes": getattr(self, "titan_runes", {}),
-            "my_essences": getattr(self, "my_essences", []),
-            "essence_last_draw": getattr(self, "essence_last_draw", 0),
+            "titan_monster_hp":   self.titan_monster_hp,
+            "titan_runes":        getattr(self, "titan_runes", {}),
+            # ── Армія та герої ────────────────────────────────────────────
+            "army_names": [h.original_name for h in self.army],
+            "all_heroes": [
+                {
+                    "name":           h.original_name,
+                    "level":          h.level,
+                    "xp":             h.xp,
+                    "runes":          getattr(h, "runes", []),
+                    "evolved":        getattr(h, "evolved", False),
+                    "evo_tier":       getattr(h, "evo_tier", 0),
+                    "divine_xp":      getattr(h, "divine_xp", 0),
+                    "ability_levels": getattr(h, "ability_levels", {}),
+                }
+                for h in self.all_heroes
+                if not getattr(h, "_super_human", False)
+                and not getattr(h, "_arch_card", False)
+            ],
+            "graveyard": [
+                {"name": h.original_name, "level": h.level, "xp": h.xp}
+                for h in self.graveyard
+            ],
+            # ── Руни та есенції ───────────────────────────────────────────
+            "my_runes":           self.my_runes,
+            "my_essences":        getattr(self, "my_essences", []),
+            "essence_last_draw":  getattr(self, "essence_last_draw", 0),
+            # ── Супер Люди ────────────────────────────────────────────────
             "super_human_shards":    getattr(self, "super_human_shards", {}),
             "unlocked_super_humans": getattr(self, "unlocked_super_humans", []),
+            "super_human_levels": {
+                getattr(h, "_super_human_orig", h.original_name): {
+                    "level": h.level,
+                    "xp":    getattr(h, "_super_human_xp", 0),
+                }
+                for h in self.all_heroes if getattr(h, "_super_human", False)
+            },
+            # ── Архангели та Архдемони ────────────────────────────────────
             "arch_shards":   getattr(self, "arch_shards", {}),
             "unlocked_arch": getattr(self, "unlocked_arch", []),
             "arch_levels": {
-                getattr(h, '_arch_orig', h.original_name): {
-                    "level": h.level, "xp": getattr(h, '_arch_xp', 0)
+                getattr(h, "_arch_orig", h.original_name): {
+                    "level": h.level,
+                    "xp":    getattr(h, "_arch_xp", 0),
                 }
-                for h in self.all_heroes if getattr(h, '_arch_card', False)
+                for h in self.all_heroes if getattr(h, "_arch_card", False)
             },
-            "sh_completed_levels": getattr(self, "sh_completed_levels", {}),
-            "ad_completed_levels": getattr(self, "ad_completed_levels", {}),
+            # ── Міні-ігри ─────────────────────────────────────────────────
             "lucky_free_tries":  getattr(self, "lucky_free_tries", 3),
             "lucky_gold_tries":  getattr(self, "lucky_gold_tries", 3),
+            "lucky_last_reset":  getattr(self, "lucky_last_reset", 0),
             "fort_free_tries":   getattr(self, "fort_free_tries", 3),
             "fort_ore_tries":    getattr(self, "fort_ore_tries", 3),
             "mono_pos":          getattr(self, "mono_pos", 0),
             "wheel_angle":       getattr(self, "wheel_angle", 0.0),
-            "lucky_last_reset":  getattr(self, "lucky_last_reset", 0),
-            "super_human_levels": {
-                getattr(h, '_super_human_orig', h.original_name): {
-                    "level": h.level, "xp": getattr(h, '_super_human_xp', 0)
-                }
-                for h in self.all_heroes if getattr(h, '_super_human', False)
-            },
+            "total_hits":          getattr(self, "total_hits", 0),
+            "total_wins":          getattr(self, "total_wins", 0),
+            "total_losses":        getattr(self, "total_losses", 0),
+            "best_win_streak":     getattr(self, "best_win_streak", 0),
+            "battles_fought":      getattr(self, "battles_fought", 0),
+            "cards_evolved":       getattr(self, "cards_evolved", 0),
+            "gold_earned":         getattr(self, "gold_earned", 0),
+            "daily_last_claim":    getattr(self, "daily_last_claim", 0),
+            "daily_day_num":       getattr(self, "daily_day_num", 0),
+            "achievements":        getattr(self, "achievements", {}),
+            "chest_last_open":   {k: int(v) for k,v in getattr(self, "chest_last_open", {}).items()},
+            "shard_shop_refresh": getattr(self, "shard_shop_refresh", 0),
+            "shard_shop_bought":  getattr(self, "shard_shop_bought", []),
         }
-        # Визначаємо безпечну директорію для збереження
-        _save_dir = os.path.dirname(os.path.abspath(__file__))
+        # Для .exe (PyInstaller) — зберігати поруч з .exe, не в temp папці
+        if getattr(sys, 'frozen', False):
+            _save_dir = os.path.dirname(sys.executable)
+        else:
+            _save_dir = os.path.dirname(os.path.abspath(__file__))
         _save_path = os.path.join(_save_dir, "savegame.json")
         try:
             with open(_save_path, "w", encoding="utf-8") as f:
-                json.dump(save_data, f, ensure_ascii=False, indent=4)
-        except PermissionError:
-            # Якщо немає дозволу в директорії скрипту — зберігаємо у домашню директорію
-            import pathlib
-            _home_save = os.path.join(str(pathlib.Path.home()), "savegame_arena.json")
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
+        except (PermissionError, Exception):
             try:
+                import pathlib
+                _home_save = os.path.join(str(pathlib.Path.home()), "savegame_arena.json")
                 with open(_home_save, "w", encoding="utf-8") as f:
-                    json.dump(save_data, f, ensure_ascii=False, indent=4)
+                    json.dump(save_data, f, ensure_ascii=False, indent=2)
             except Exception:
-                pass  # Якщо і там не вдалося — мовчки пропускаємо
-        except Exception:
-            pass
+                pass
 
     def load_game(self):
-        # Визначаємо шлях до файлу збереження (той самий що в save_game)
-        _save_dir = os.path.dirname(os.path.abspath(__file__))
+        import pathlib
+        # Для .exe (PyInstaller) — читати поруч з .exe, не з temp папки
+        if getattr(sys, 'frozen', False):
+            _save_dir = os.path.dirname(sys.executable)
+        else:
+            _save_dir = os.path.dirname(os.path.abspath(__file__))
         _save_path = os.path.join(_save_dir, "savegame.json")
         if not os.path.exists(_save_path):
-            import pathlib
             _home_save = os.path.join(str(pathlib.Path.home()), "savegame_arena.json")
             if os.path.exists(_home_save):
                 _save_path = _home_save
-        if os.path.exists(_save_path):
-            try:
-                with open(_save_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    self.gold = data.get("gold", 1000)
-                    self.diamonds = data.get("diamonds", 100)
-                    self.ore = data.get("ore", 500)
-                    self.keys = data.get("keys", 10)
-                    self.selected_world = data.get("selected_world", 1)
-                    self.selected_location = data.get("selected_location", 1)
-                    self.altar_last_draw_time = data.get("altar_last_draw_time", 0)
-                    self.chest_last_open = data.get("chest_last_open", {c[0]: 0 for c in CHESTS})
-                    self.titan_level  = data.get("titan_level", 1)
-                    self.titan_xp     = data.get("titan_xp", 0)
-                    self.titan_levels = data.get("titan_levels", {"titan_1": 1})
-                    self.titan_id     = data.get("titan_id", "titan_1")
-                    self.owned_titans = data.get("owned_titans", ["titan_1"])
-                    self.titan_shards = data.get("titan_shards", {})
-                    self.titan_monster_hp = data.get("titan_monster_hp", {})
-                    self.titan_refresh_time = data.get("titan_refresh_time", {})
-                    raw_completed = data.get("completed_levels", {})
-                    self.completed_levels = {int(k): v for k, v in raw_completed.items()}
-                    raw_sh_completed = data.get("sh_completed_levels", {})
-                    self.sh_completed_levels = {int(k): v for k, v in raw_sh_completed.items()}
-                    raw_ad_completed = data.get("ad_completed_levels", {})
-                    self.ad_completed_levels = {int(k): v for k, v in raw_ad_completed.items()}
-                    self.lucky_free_tries  = data.get("lucky_free_tries", 3)
-                    self.lucky_gold_tries  = data.get("lucky_gold_tries", 3)
-                    self.fort_free_tries   = data.get("fort_free_tries", 3)
-                    self.fort_ore_tries    = data.get("fort_ore_tries", 3)
-                    self.mono_pos          = data.get("mono_pos", 0)
-                    self.wheel_angle       = data.get("wheel_angle", 0.0)
-                    self.lucky_last_reset  = data.get("lucky_last_reset", 0)
-                    # ── Архангели та Архдемони ──────────────────────────────────
-                    saved_ar = data.get("arch_shards", {})
-                    self.arch_shards   = {ar[0]: saved_ar.get(ar[0], 0) for ar in ARCH_CARDS}
-                    self.unlocked_arch = data.get("unlocked_arch", [])
-                    saved_ar_levels = data.get("arch_levels", {})
-                    for orig_ar in self.unlocked_arch:
-                        ar_d = next((a for a in ARCH_CARDS if a[0] == orig_ar), None)
-                        if ar_d:
-                            c_ar = create_arch_card(ar_d)
-                            ar_saved = saved_ar_levels.get(orig_ar, {})
-                            if ar_saved.get("level", 1) > 1:
-                                c_ar.level = ar_saved["level"]
-                                c_ar.max_hp, c_ar.attack = get_arch_stats(c_ar.level)
-                                c_ar.hp = c_ar.max_hp
-                            c_ar._arch_xp = ar_saved.get("xp", 0)
-                            self.all_heroes.append(c_ar)
+        if not os.path.exists(_save_path):
+            return  # перший запуск — немає збереження
+        try:
+            with open(_save_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
 
-                    self.all_heroes = []
-                    for h in data.get("all_heroes", []):
-                        c = Card(h["name"], h["level"])
-                        c.xp        = h.get("xp", 0)
-                        c.runes     = h.get("runes", [])
-                        c.evolved   = h.get("evolved", False)
-                        c.evo_tier  = h.get("evo_tier", 0)
-                        c.divine_xp = h.get("divine_xp", 0)
-                        c.ability_levels = h.get("ability_levels", {})
-                        if c.evolved: c._update_stats()
-                        self.all_heroes.append(c)
+            # ── Ресурси ───────────────────────────────────────────────────
+            self.gold     = data.get("gold",     1000)
+            self.diamonds = data.get("diamonds",  100)
+            self.ore      = data.get("ore",       500)
+            self.keys     = data.get("keys",       10)
 
-                    self.graveyard = []
-                    for h in data.get("graveyard", []):
-                        c = Card(h["name"], h["level"])
-                        c.hp = 0
-                        c.is_alive = False
-                        c.xp = h.get("xp", 0)
-                        self.graveyard.append(c)
-                    self.my_runes = data.get("my_runes", [])
-                    self.titan_runes = data.get("titan_runes", {})
-                    self.my_essences = data.get("my_essences", [])
-                    self.essence_last_draw = data.get("essence_last_draw", 0)
-                    saved_sh = data.get("super_human_shards", {})
-                    self.super_human_shards = {sh[0]: saved_sh.get(sh[0], 0) for sh in SUPER_HUMAN_CARDS}
-                    self.unlocked_super_humans = data.get("unlocked_super_humans", [])
-                    saved_sh_levels = data.get("super_human_levels", {})
-                    # Відновлюємо Супер Людей у all_heroes — рівно по одній на кожен orig
-                    # (вони НЕ зберігаються в all_heroes, тому дублікатів немає)
-                    for orig in self.unlocked_super_humans:
-                        sh_d = next((s for s in SUPER_HUMAN_CARDS if s[0] == orig), None)
-                        if sh_d:
-                            c_sh = create_super_human_card(sh_d)
-                            sh_saved = saved_sh_levels.get(orig, {})
-                            if sh_saved.get("level", 1) > 1:
-                                c_sh.level = sh_saved["level"]
-                                c_sh.max_hp, c_sh.attack = get_super_human_stats(c_sh.level)
-                                c_sh.hp = c_sh.max_hp
-                            c_sh._super_human_xp = sh_saved.get("xp", 0)
-                            self.all_heroes.append(c_sh)
-            except Exception as e:
-                print(f"Помилка завантаження: {e}")
+            # ── Прогрес світів ────────────────────────────────────────────
+            self.selected_world    = data.get("selected_world", 1)
+            self.selected_location = data.get("selected_location", 1)
+            raw = data.get("completed_levels", {})
+            self.completed_levels  = {int(k): v for k, v in raw.items()}
+
+            self.sh_selected_world    = data.get("sh_selected_world", 1)
+            self.sh_selected_location = data.get("sh_selected_location", 1)
+            raw_sh = data.get("sh_completed_levels", {})
+            self.sh_completed_levels  = {int(k): v for k, v in raw_sh.items()}
+
+            self.ad_selected_world    = data.get("ad_selected_world", 1)
+            self.ad_selected_location = data.get("ad_selected_location", 1)
+            raw_ad = data.get("ad_completed_levels", {})
+            self.ad_completed_levels  = {int(k): v for k, v in raw_ad.items()}
+
+            self.victory_location_wins = data.get("victory_location_wins", {})
+
+            # ── Налаштування ──────────────────────────────────────────────
+            self.music_enabled  = data.get("music_enabled",  True)
+            self.sounds_enabled = data.get("sounds_enabled", True)
+            self.current_lang   = data.get("current_lang", "uk")
+            # Синхронізуємо глобальну змінну мови
+            global _current_lang
+            _current_lang = self.current_lang
+
+            # ── Сундуки ───────────────────────────────────────────────────
+            self.chest_last_open = data.get("chest_last_open", {c[0]: 0 for c in CHESTS})
+
+            # ── Вівтар ────────────────────────────────────────────────────
+            self.altar_last_draw_time = data.get("altar_last_draw_time", 0)
+
+            # ── Тітани ────────────────────────────────────────────────────
+            self.titan_level        = data.get("titan_level", 1)
+            self.titan_xp           = data.get("titan_xp", 0)
+            self.titan_levels       = data.get("titan_levels", {"titan_1": 1})
+            self.titan_id           = data.get("titan_id", "titan_1")
+            self.owned_titans       = data.get("owned_titans", ["titan_1"])
+            self.titan_shards       = data.get("titan_shards", {})
+            self.titan_refresh_time = data.get("titan_refresh_time", {})
+            self.titan_monster_hp   = data.get("titan_monster_hp", {})
+            self.titan_runes        = data.get("titan_runes", {})
+
+            # ── Руни та есенції ───────────────────────────────────────────
+            self.my_runes          = data.get("my_runes", [])
+            self.my_essences       = data.get("my_essences", [])
+            self.essence_last_draw = data.get("essence_last_draw", 0)
+
+            # ── Супер Люди — осколки ──────────────────────────────────────
+            saved_sh = data.get("super_human_shards", {})
+            self.super_human_shards    = {sh[0]: saved_sh.get(sh[0], 0) for sh in SUPER_HUMAN_CARDS}
+            self.unlocked_super_humans = data.get("unlocked_super_humans", [])
+
+            # ── Архангели — осколки ───────────────────────────────────────
+            saved_ar = data.get("arch_shards", {})
+            self.arch_shards   = {ar[0]: saved_ar.get(ar[0], 0) for ar in ARCH_CARDS}
+            self.unlocked_arch = data.get("unlocked_arch", [])
+
+            # ── Міні-ігри ─────────────────────────────────────────────────
+            self.lucky_free_tries = data.get("lucky_free_tries", 3)
+            self.lucky_gold_tries = data.get("lucky_gold_tries", 3)
+            self.lucky_last_reset = data.get("lucky_last_reset", 0)
+            self.fort_free_tries  = data.get("fort_free_tries", 3)
+            self.fort_ore_tries   = data.get("fort_ore_tries", 3)
+            self.mono_pos         = data.get("mono_pos", 0)
+            self.wheel_angle      = data.get("wheel_angle", 0.0)
+            self.total_hits       = data.get("total_hits", 0)
+            self.total_wins       = data.get("total_wins", 0)
+            self.total_losses     = data.get("total_losses", 0)
+            self.best_win_streak  = data.get("best_win_streak", 0)
+            self.battles_fought   = data.get("battles_fought", 0)
+            self.cards_evolved    = data.get("cards_evolved", 0)
+            self.gold_earned      = data.get("gold_earned", 0)
+            self.daily_last_claim = data.get("daily_last_claim", 0)
+            self.daily_day_num    = data.get("daily_day_num", 0)
+            self.achievements     = data.get("achievements", {})
+            saved_clo = data.get("chest_last_open", {})
+            if saved_clo:
+                for k, v in saved_clo.items():
+                    if k in self.chest_last_open:
+                        self.chest_last_open[k] = int(v)
+            self.shard_shop_refresh = data.get("shard_shop_refresh", 0)
+            self.shard_shop_bought  = data.get("shard_shop_bought", [])
+
+            # ── Всі герої (звичайні) ──────────────────────────────────────
+            self.all_heroes = []
+            for h in data.get("all_heroes", []):
+                _lvl = h["level"]
+                _evo_tier = h.get("evo_tier", 0)
+                _evolved  = h.get("evolved", False)
+                # Для EvII дозволяємо рівень до 120, для EvI до 110
+                if _evo_tier >= 2:
+                    _lvl = max(1, min(120, _lvl))
+                elif _evolved:
+                    _lvl = max(1, min(110, _lvl))
+                c = Card(h["name"], _lvl)
+                c.xp             = h.get("xp", 0)
+                c.runes          = h.get("runes", [])
+                c.evolved        = _evolved
+                c.evo_tier       = _evo_tier
+                c.divine_xp      = h.get("divine_xp", 0)
+                c.ability_levels = h.get("ability_levels", {})
+                # Перераховуємо stats з правильним evo_tier
+                c._update_stats()
+                c.hp = c.max_hp
+                self.all_heroes.append(c)
+
+            # ── Цвинтар ───────────────────────────────────────────────────
+            self.graveyard = []
+            for h in data.get("graveyard", []):
+                c = Card(h["name"], h["level"])
+                c.hp       = 0
+                c.is_alive = False
+                c.xp       = h.get("xp", 0)
+                self.graveyard.append(c)
+
+            # ── Супер Люди — відновлення карт ────────────────────────────
+            saved_sh_levels = data.get("super_human_levels", {})
+            for orig in self.unlocked_super_humans:
+                sh_d = next((s for s in SUPER_HUMAN_CARDS if s[0] == orig), None)
+                if sh_d:
+                    c_sh = create_super_human_card(sh_d)
+                    sh_saved = saved_sh_levels.get(orig, {})
+                    if sh_saved.get("level", 1) > 1:
+                        c_sh.level = sh_saved["level"]
+                        c_sh.max_hp, c_sh.attack = get_super_human_stats(c_sh.level)
+                        c_sh.hp = c_sh.max_hp
+                    c_sh._super_human_xp = sh_saved.get("xp", 0)
+                    self.all_heroes.append(c_sh)
+
+            # ── Архангели та Архдемони — відновлення карт ─────────────────
+            saved_ar_levels = data.get("arch_levels", {})
+            for orig_ar in self.unlocked_arch:
+                ar_d = next((a for a in ARCH_CARDS if a[0] == orig_ar), None)
+                if ar_d:
+                    c_ar = create_arch_card(ar_d)
+                    ar_saved = saved_ar_levels.get(orig_ar, {})
+                    if ar_saved.get("level", 1) > 1:
+                        c_ar.level = ar_saved["level"]
+                        c_ar.max_hp, c_ar.attack = get_arch_stats(c_ar.level)
+                        c_ar.hp = c_ar.max_hp
+                    c_ar._arch_xp = ar_saved.get("xp", 0)
+                    self.all_heroes.append(c_ar)
+
+            # ── Армія гравця ──────────────────────────────────────────────
+            army_names = data.get("army_names", [])
+            self.army  = []
+            for aname in army_names:
+                hero = next((h for h in self.all_heroes if h.original_name == aname), None)
+                if hero:
+                    self.army.append(hero)
+
+        except Exception as e:
+            print(f"[SAVE] Помилка завантаження: {e}")
+
+    def check_daily_bonus(self):
+        """Перевіряє та видає щоденну нагороду. Повертає текст або None."""
+        import time as _t
+        _daily_rewards = [
+            (500,   0,   0, 1, "500 🪙 + 1 🔑"),
+            (0,    50,   0, 0, "50 ⛏️"),
+            (0,     0,  10, 0, "10 💎"),
+            (1000,  0,   0, 2, "1000 🪙 + 2 🔑"),
+            (0,   100,  20, 0, "100 ⛏️ + 20 💎"),
+            (2000,  0,   0, 3, "2000 🪙 + 3 🔑"),
+            (0,   200,  50, 5, "200 ⛏️ + 50 💎 + 5 🔑 ⭐"),
+        ]
+        _now = _t.time()
+        _last = getattr(self, 'daily_last_claim', 0)
+        _day_num = getattr(self, 'daily_day_num', 0)
+        # Перевіряємо чи пройшло 24 год
+        if _now - _last < 86400:
+            return None  # ще не можна
+        # Видаємо нагороду
+        _idx = _day_num % 7
+        g, o, d, k, txt = _daily_rewards[_idx]
+        self.gold     += g
+        self.ore      += o
+        self.diamonds += d
+        self.keys     += k
+        self.daily_last_claim  = _now
+        self.daily_day_num     = _day_num + 1
+        self.daily_claimed_today = True
+        self.save_game()
+        return f"🎁 День {_idx+1}: {txt}"
 
     def generate_shop_cards(self, prefix):
         """Генерує 10 унікальних карт з фіксованого пулу (щоб були іменовані картинки)."""
@@ -5695,7 +6247,7 @@ class Game:
                     returned = card.runes.pop(0)  # знімаємо першу руну
                     returned.pop("for_titan", None)
                     self.my_runes.append(returned)
-                    self.rune_msg = f"Руну {returned['name']} знято і повернуто до Моїх Рун!"
+                    self.rune_msg = f"Руну {returned["name"]} знято і повернуто до Моїх Рун!"
                     if not card.runes:
                         self.remove_rune_selected_card = None
                     self.save_game()
@@ -5717,6 +6269,9 @@ class Game:
         elif self.state == SETTINGS:
             if self.btn_back.collidepoint(pos): self.state = MENU
             elif self.btn_reset.collidepoint(pos): self.reset_progress()
+            elif getattr(self, "btn_lang", pygame.Rect(0,0,0,0)).collidepoint(pos):
+                self._lang_btns = []
+                self.state = LANG_SELECT
             elif getattr(self, "btn_save_exit", pygame.Rect(0,0,0,0)).collidepoint(pos):
                 self.save_game(); pygame.quit(); sys.exit()
             elif getattr(self, "btn_toggle_music", pygame.Rect(0,0,0,0)).collidepoint(pos):
@@ -5728,6 +6283,18 @@ class Game:
                     pygame.mixer.music.set_volume(0.0)
             elif getattr(self, "btn_toggle_sounds", pygame.Rect(0,0,0,0)).collidepoint(pos):
                 self.sounds_enabled = not self.sounds_enabled
+
+        elif self.state == LANG_SELECT:
+            if self.btn_back.collidepoint(pos):
+                self.state = SETTINGS
+            else:
+                for btn_r, code in getattr(self, "_lang_btns", []):
+                    if btn_r.collidepoint(pos):
+                        global _current_lang
+                        self.current_lang = code
+                        _current_lang = code
+                        self.save_game()
+                        break
 
         elif self.state == GRAVEYARD:
             if self.btn_back.collidepoint(pos): self.state = MENU; self.dead_selected_card = None; self.scroll_offset["graveyard"] = 0
@@ -6530,7 +7097,7 @@ class Game:
                 if getattr(self, "victory_bonus_card", None):
                     self.all_heroes.append(self.victory_bonus_card)
                     self.victory_bonus_card = None
-                    self.save_game()
+                self.save_game()
                 self.state = TITAN_MONSTER_LOCS if self.is_titan_monster_battle else MENU
 
     def draw(self, w, h):
@@ -6561,15 +7128,15 @@ class Game:
             tabs = [
                 # Слот 0 — Титан (TITAN_SLOT=0)
                 # Слот 1
-                ("МОЯ АРМІЯ",       "my_army",        "btn_army"),
+                (T("MY_ARMY"),       "my_army",        "btn_army"),
                 # Слот 2
                 ("МОЇ РУНИ",        "my_runes",       "btn_my_runes"),
                 # Слот 3
                 ("АЛТАРЬ",          "altar_hub",       "btn_altar_hub"),
                 # Слот 4 — порожній (12 слотів: 11 вкладок + 1 Титан = 12)
-                ("КЛАДОВИЩЕ",       "graveyard",       "btn_graveyard"),
+                (T("GRAVEYARD_BTN"),       "graveyard",       "btn_graveyard"),
                 # Слот 5
-                ("БИТВА",           "battle_hub",      "btn_battle_hub"),
+                (T("BATTLE_HUB_BTN"),           "battle_hub",      "btn_battle_hub"),
                 # Слот 6
                 ("ЕВОЛЮЦІЯ",        "evolution",       "btn_evolution"),
                 # Слот 7
@@ -6577,11 +7144,11 @@ class Game:
                 # Слот 8
                 ("МОЇ ОСКОЛКИ",     "my_shards",       "btn_my_shards"),
                 # Слот 9
-                ("НАЛАШТУВАННЯ",    "settings",        "btn_settings"),
+                (T("SETTINGS_BTN"),    "settings",        "btn_settings"),
                 # Слот 10
-                ("ВДАЧА ГЕРОЇВ",    "lucky_heroes",    "btn_lucky_heroes"),
+                (T("LUCKY_BTN"),    "lucky_heroes",    "btn_lucky_heroes"),
                 # Слот 11
-                ("ЕНЦИКЛОПЕДІЯ",     "encyclopedia",    "btn_encyclopedia"),
+                (T("ENCYCLOPEDIA_BTN"),     "encyclopedia",    "btn_encyclopedia"),
             ]
 
             self.tab_img_rects = {}
@@ -6765,7 +7332,7 @@ class Game:
                 _vals_ar=[(_rm_ar["name"],(255,220,100)),(str(_rm_ar["cards"]),(180,255,180)),
                           (str(_rm_ar["total_hp"]),(100,200,255)),(str(_rm_ar["max_atk"]),(255,140,40)),
                           (str(_rm_ar["total_atk"]),(255,100,100)),(f"Лок.{_rm_ar['loc']} С.{_rm_ar['world']}",(180,180,255)),
-                          (f"{_rm_ar['ping']}мс",(100,220,100) if _rm_ar['ping']<50 else (220,180,50)),
+                          (f"{_rm_ar['ping']}мс",(100,220,100) if _rm_ar["ping"]<50 else (220,180,50)),
                           (_rm_ar["status"],(80,220,80) if _rm_ar["status"]=="Чекає" else (220,80,80))]
                 _vx_ar=30
                 for (_vt_ar,_vc_ar),(_cn_ar2,_cw_ar2) in zip(_vals_ar,_cols_ar):
@@ -6880,7 +7447,7 @@ class Game:
                         (str(_room["max_atk"]),  (255,140,40)),
                         (str(_room["total_atk"]), (255,100,100)),
                         (f"Лок.{_room['loc']} С.{_room['world']}", (180,180,255)),
-                        (f"{_room['ping']}мс",  (100,220,100) if _room['ping']<50 else (220,180,50)),
+                        (f"{_room['ping']}мс",  (100,220,100) if _room["ping"]<50 else (220,180,50)),
                         (_room["status"],   (80,220,80) if _room["status"]=="Чекає" else (220,80,80)),
                     ]
                     _vx = 30
@@ -7113,19 +7680,43 @@ class Game:
             self.btn_back = self.draw_button("НАЗАД", 20, h - 70, 150, 50, GRAY)
 
         elif self.state == SETTINGS:
-            title = font_big.render("НАЛАШТУВАННЯ", True, WHITE)
-            screen.blit(title, (w//2 - title.get_width()//2, h//2 - 230))
+            title = font_big.render(T("SETTINGS_TITLE"), True, WHITE)
+            screen.blit(title, (w//2 - title.get_width()//2, h//2 - 260))
             # Галочка музики
             music_col = (30, 160, 30) if self.music_enabled else (80, 80, 80)
-            music_label = "[✓] МУЗИКА" if self.music_enabled else "[  ] МУЗИКА"
-            self.btn_toggle_music = self.draw_button(music_label, w//2 - 150, h//2 - 155, 300, 50, music_col)
+            music_label = T("MUSIC_ON") if self.music_enabled else T("MUSIC_OFF")
+            self.btn_toggle_music = self.draw_button(music_label, w//2 - 150, h//2 - 185, 300, 50, music_col)
             # Галочка звуків
             sound_col = (30, 160, 30) if self.sounds_enabled else (80, 80, 80)
-            sound_label = "[✓] ЗВУКИ БОЮ" if self.sounds_enabled else "[  ] ЗВУКИ БОЮ"
-            self.btn_toggle_sounds = self.draw_button(sound_label, w//2 - 150, h//2 - 90, 300, 50, sound_col)
-            self.btn_reset = self.draw_button("СКИНУТИ ПРОГРЕС", w//2 - 150, h//2 - 25, 300, 60, RED)
-            self.btn_save_exit = self.draw_button("ЗБЕРЕГТИ ТА ВИЙТИ", w//2 - 150, h//2 + 45, 300, 55, (60,60,60))
-            self.btn_back = self.draw_button("НАЗАД", w//2 - 150, h//2 + 115, 300, 50, GRAY)
+            sound_label = T("SOUNDS_ON") if self.sounds_enabled else T("SOUNDS_OFF")
+            self.btn_toggle_sounds = self.draw_button(sound_label, w//2 - 150, h//2 - 122, 300, 50, sound_col)
+            self.btn_reset = self.draw_button(T("RESET_PROGRESS"), w//2 - 150, h//2 - 57, 300, 55, RED)
+            self.btn_lang  = self.draw_button(T("LANGUAGE_BTN"), w//2 - 150, h//2 + 10, 300, 50, (40, 80, 160))
+            self.btn_save_exit = self.draw_button(T("SAVE_EXIT"), w//2 - 150, h//2 + 72, 300, 50, (60,60,60))
+            self.btn_back = self.draw_button(T("BACK"), w//2 - 150, h//2 + 135, 300, 50, GRAY)
+
+        elif self.state == LANG_SELECT:
+            title = font_big.render(T("LANG_SELECT_TITLE"), True, WHITE)
+            screen.blit(title, (w//2 - title.get_width()//2, 30))
+            BTN_W, BTN_H, GAP = 280, 52, 12
+            cols = 2
+            total = len(LANGUAGES)
+            rows = (total + cols - 1) // cols
+            start_y = 100
+            self._lang_btns = []
+            for i, (code, label) in enumerate(LANGUAGES):
+                col_i = i % cols
+                row_i = i // cols
+                bx = w//2 - (BTN_W*cols + GAP*(cols-1))//2 + col_i*(BTN_W+GAP)
+                by = start_y + row_i*(BTN_H+GAP)
+                is_active = (code == self.current_lang)
+                btn_col = (30, 140, 30) if is_active else (50, 70, 130)
+                if is_active:
+                    pygame.draw.rect(screen, (255, 215, 0), (bx-3, by-3, BTN_W+6, BTN_H+6), border_radius=10)
+                btn_r = self.draw_button(label, bx, by, BTN_W, BTN_H, btn_col)
+                self._lang_btns.append((btn_r, code))
+            back_y = start_y + rows*(BTN_H+GAP) + 20
+            self.btn_back = self.draw_button(T("BACK"), w//2 - 150, back_y, 300, 50, GRAY)
 
         elif self.state == GRAVEYARD:
             screen.blit(font_big.render(f"Кладовище: {len(self.graveyard)}", True, RED), (w//2 - 150, 20))
@@ -7270,7 +7861,7 @@ class Game:
         elif self.state == SUPER_HUMAN_SHOP:
             _ts_sh = font_big.render("🧩  КАРТИ ЗА ОСКОЛКИ  🧩", True, (80,255,180))
             screen.blit(_ts_sh, (w//2-_ts_sh.get_width()//2, 8))
-            _sub_sh = font_small.render("Раса «Супер Люди» · Осколки або купівля за гривні", True, (160,220,200))
+            _sub_sh = font_small.render("Раса «Супер Люди» · Осколки або купівля за USDT TRC-20", True, (160,220,200))
             screen.blit(_sub_sh, (w//2-_sub_sh.get_width()//2, 48))
             _CW_SH,_CH_SH,_GAP_SH = 175,270,10
             _COLS_SH = max(1,(w-40)//(_CW_SH+_GAP_SH))
@@ -7307,7 +7898,7 @@ class Game:
                 pygame.draw.rect(screen,(40,40,40),(_sx+6,_sy2+176,_CW_SH-12,10))
                 pygame.draw.rect(screen,(0,200,120) if _is_unl else (255,180,0),(_sx+6,_sy2+176,int((_CW_SH-12)*_prog),10))
                 screen.blit(font_small.render(f"🧩 {_cur_sh}/{shard_cost}",True,(255,215,0) if not _is_unl else (0,220,120)),(_sx+_CW_SH//2-font_small.size(f"🧩 {_cur_sh}/{shard_cost}")[0]//2,_sy2+190))
-                screen.blit(font_small.render(f"💳 {uah_price} грн",True,(200,180,255)),(_sx+_CW_SH//2-font_small.size(f"💳 {uah_price} грн")[0]//2,_sy2+208))
+                screen.blit(font_small.render(f"💳 {uah_to_usdt(uah_price)} USDT · {uah_price}₴",True,(200,180,255)),(_sx+_CW_SH//2-font_small.size(f"💳 {uah_to_usdt(uah_price)} USDT · {uah_price}₴")[0]//2,_sy2+208))
                 _st_lbl=("✅ У АРМІЇ" if _is_unl else
                          "🔓 РОЗБЛОКУВАТИ" if _cur_sh>=shard_cost else
                          f"🔒 {shard_cost-_cur_sh}🧩")
@@ -7344,17 +7935,17 @@ class Game:
                         screen.blit(_nd_s,(w//2-290,_py2+14))
                     # Кнопка КУПИТИ
                     self.btn_sh_buy = self.draw_button(
-                        f"💳 КУПИТИ {up2} грн",
+                        f"💳 КУПИТИ {uah_to_usdt(up2)} USDT (≈{up2} грн)",
                         w//2+10, _py2, 260, 48,
                         (120,60,0) if MONOBANK_MERCHANT_TOKEN else (50,50,50),
                         active=bool(MONOBANK_MERCHANT_TOKEN))
                     _hint_b = font_small.render(
-                        "Оплата → карта одразу у МОЯ АРМІЯ", True, (180,140,80))
+                        "Надішли USDT на гаманець → натисни ПІДТВЕРДИТИ", True, (180,140,80))
                     screen.blit(_hint_b,(w//2+10,_py2+52))
                     # Кнопка перевірити
                     _has_inv = bool(getattr(self,'_sh_pay_pending_invoice',''))
                     self.btn_sh_check = self.draw_button(
-                        "🔍 ПЕРЕВІРИТИ", w//2+280, _py2, 150, 48,
+                        "✅ ПІДТВЕРДИТИ", w//2+280, _py2, 150, 48,
                         (50,120,50) if _has_inv else (35,55,35), active=_has_inv)
                 else:
                     _ok=font.render(f"✅ {name2} вже у МОЯ АРМІЯ  (Lv{min(125,max(c.level for c in self.all_heroes if getattr(c,'_super_human_orig','') == orig2) if any(getattr(c,'_super_human_orig','') == orig2 for c in self.all_heroes) else 1)})",
@@ -7364,7 +7955,7 @@ class Game:
             _spm=getattr(self,'sh_pay_msg','')
             if _spm:
                 for _li2,_ln2 in enumerate(_spm.split("\n")):
-                    _lc2=(80,255,80) if "✅" in _ln2 else (255,200,50) if "⏳" in _ln2 else (255,80,80)
+                    _lc2=(80,255,80) if "✅" in _ln2 else (255,200,50) if "💳" in _ln2 else (255,215,0) if "Гаманець:" in _ln2 else (255,80,80) if "❌" in _ln2 else WHITE
                     _ls2=font_small.render(_ln2,True,_lc2); screen.blit(_ls2,(w//2-_ls2.get_width()//2,h-52+_li2*16))
             self.btn_back=self.draw_button("НАЗАД",20,h-70,150,50,RED)
 
@@ -7372,7 +7963,7 @@ class Game:
         elif self.state == ARCH_SHOP:
             _ts_ar = font_big.render("😇  КАРТИ ЗА ОСКОЛКИ ІІ  👿", True, (255, 180, 80))
             screen.blit(_ts_ar, (w//2-_ts_ar.get_width()//2, 8))
-            _sub_ar = font_small.render("Раса «Архангели та Архдемони» · Осколки або купівля за гривні", True, (220, 190, 140))
+            _sub_ar = font_small.render("Раса «Архангели та Архдемони» · Осколки або купівля за USDT TRC-20", True, (220, 190, 140))
             screen.blit(_sub_ar, (w//2-_sub_ar.get_width()//2, 48))
             _CW_AR, _CH_AR, _GAP_AR = 175, 270, 10
             _COLS_AR = max(1, (w-40)//(_CW_AR+_GAP_AR))
@@ -7419,8 +8010,8 @@ class Game:
                 screen.blit(font_small.render(f"🧩 {_cur_ar}/{shard_cost_a}", True,
                                               (255,215,0) if not _is_unl_a else (255,180,0)),
                             (_ax+_CW_AR//2-font_small.size(f"🧩 {_cur_ar}/{shard_cost_a}")[0]//2, _ay+190))
-                screen.blit(font_small.render(f"💳 {uah_a} грн", True, (200,180,255)),
-                            (_ax+_CW_AR//2-font_small.size(f"💳 {uah_a} грн")[0]//2, _ay+208))
+                screen.blit(font_small.render(f"💳 {uah_to_usdt(uah_a)} USDT · {uah_a}₴", True, (200,180,255)),
+                            (_ax+_CW_AR//2-font_small.size(f"💳 {uah_to_usdt(uah_a)} USDT · {uah_a}₴")[0]//2, _ay+208))
                 _st_lbl_a = ("✅ У АРМІЇ" if _is_unl_a else
                              "🔓 РОЗБЛОКУВАТИ" if _cur_ar >= shard_cost_a else
                              f"🔒 {shard_cost_a-_cur_ar}🧩")
@@ -7456,15 +8047,15 @@ class Game:
                             True, (180,180,180))
                         screen.blit(_nd_a, (w//2-290, _py_a+14))
                     self.btn_ar_buy = self.draw_button(
-                        f"💳 КУПИТИ {up_a2} грн",
+                        f"💳 КУПИТИ {uah_to_usdt(up_a2)} USDT (≈{up_a2} грн)",
                         w//2+10, _py_a, 260, 48,
                         (120,60,0) if MONOBANK_MERCHANT_TOKEN else (50,50,50),
                         active=bool(MONOBANK_MERCHANT_TOKEN))
-                    _hint_ab = font_small.render("Оплата → карта одразу у МОЯ АРМІЯ", True, (180,140,80))
+                    _hint_ab = font_small.render("Надішли USDT на гаманець → натисни ПІДТВЕРДИТИ", True, (180,140,80))
                     screen.blit(_hint_ab, (w//2+10, _py_a+52))
                     _has_inv_a = bool(getattr(self, '_arch_pay_pending_invoice', ''))
                     self.btn_ar_check = self.draw_button(
-                        "🔍 ПЕРЕВІРИТИ", w//2+280, _py_a, 150, 48,
+                        "✅ ПІДТВЕРДИТИ", w//2+280, _py_a, 150, 48,
                         (50,120,50) if _has_inv_a else (35,55,35), active=_has_inv_a)
                 else:
                     _lvl_ar = max((c.level for c in self.all_heroes if getattr(c,'_arch_orig','') == orig_a2), default=1)
@@ -7474,7 +8065,7 @@ class Game:
             _apm = getattr(self, 'arch_pay_msg', '')
             if _apm:
                 for _li_a, _ln_a in enumerate(_apm.split("\n")):
-                    _lc_a = (80,255,80) if "✅" in _ln_a else (255,200,50) if "⏳" in _ln_a else (255,80,80)
+                    _lc_a = (80,255,80) if "✅" in _ln_a else (255,200,50) if "⏳" in _ln_a else (255,80,80) if "❌" in _ln_a else (255,215,0) if "Гаманець:" in _ln_a else WHITE
                     _ls_a = font_small.render(_ln_a, True, _lc_a)
                     screen.blit(_ls_a, (w//2-_ls_a.get_width()//2, h-52+_li_a*16))
             self.btn_back = self.draw_button("НАЗАД", 20, h-70, 150, 50, RED)
@@ -8562,7 +9153,7 @@ class Game:
                     ("🧩 Навіщо осколки","Єдиний безплатний спосіб отримати Супер Людей та Архангелів — наймогутніших карт гри."),
                     ("📥 Отримання","Турнір(перемога): +2 СЛ +2 Арх. Турнір(поразка): +1 СЛ +1 Арх. Вдача Героїв: +1 будь-якої раси."),
                     ("🔓 Розблокування","РИНОК→відповідний розділ→знайдіть карту→Розблокувати (при наявності осколків). Карта переходить у МОЯ АРМІЯ Lv1."),
-                    ("💳 Купівля","Кожна карта має ціну в гривнях. Натисніть КУПИТИ→оплата через Monobank→ПЕРЕВІРИТИ."),
+                    ("💳 USDT Купівля",f"Кожна карта має ціну в USDT TRC-20. Натисніть КУПИТИ → надішліть USDT на гаманець {SHOP_WALLET} → натисніть ПІДТВЕРДИТИ."),
                 ]:
                     _content_y=_enc_head(_sh,_content_y)
                     _content_y=_enc_text(_sd,14,_content_y,_font_b)
@@ -9238,7 +9829,7 @@ class Game:
                     screen.blit(_pi1, (w//2-_pi1.get_width()//2, _pay_y))
 
                     _pi2 = font_small.render(
-                        f"Сума: {SUPREME_PRICE_UAH} грн · Оплата через Monobank Еквайринг",
+                        f"Сума: {uah_to_usdt(SUPREME_PRICE_UAH)} USDT (≈{SUPREME_PRICE_UAH} грн) · Гаманець: {SHOP_WALLET[:24]}...",
                         True, (200, 200, 200))
                     screen.blit(_pi2, (w//2-_pi2.get_width()//2, _pay_y+24))
 
@@ -9257,7 +9848,7 @@ class Game:
                     _has_card    = bool(getattr(self,'_pending_supreme_card',None))
 
                     # Кнопка ОПЛАТИТИ
-                    _pay_lbl = f"💳 ЕВОЛЮЦІЯ ЗА ГРОШІ ({SUPREME_PRICE_UAH} грн)"
+                    _pay_lbl = f"💳 ЕВОЛЮЦІЯ ЗА USDT ({uah_to_usdt(SUPREME_PRICE_UAH)} USDT / {SUPREME_PRICE_UAH} грн)"
                     _pay_col = (160, 90, 0) if _has_token else (60, 60, 60)
                     self.btn_supreme_pay = self.draw_button(
                         _pay_lbl, w//2-210, h-118, 420, 50, _pay_col, active=_has_token)
@@ -9265,12 +9856,12 @@ class Game:
                     # Кнопка ПЕРЕВІРИТИ — активна лише коли є invoice
                     _chk_col = (50, 140, 50) if _has_invoice else (40, 60, 40)
                     self.btn_supreme_check = self.draw_button(
-                        "🔍 ПЕРЕВІРИТИ ОПЛАТУ",
+                        "✅ ПІДТВЕРДИТИ (USDT надіслано)",
                         w//2-210, h-60, 420, 46, _chk_col, active=_has_invoice)
 
                     if not _has_token:
                         _nt = font_small.render(
-                            "⚠ Встав MONOBANK_MERCHANT_TOKEN у код!", True, (255, 80, 80))
+                            "⚠ Магазин USDT недоступний!", True, (255, 80, 80))
                         screen.blit(_nt, (w//2-_nt.get_width()//2, h-12))
                 else:
                     _hint_s=font_small.render("👆 Обери карту 110 рівня для Верховної Еволюції",True,(200,200,100))
@@ -10227,7 +10818,7 @@ class Game:
         living_e = [e for e in self.enemies if e.is_alive]
         if self.total_hits >= self.max_hits or not living_h or not living_e:
             if living_h:
-                self.winner_text = "ПЕРЕМОГА!"
+                self.winner_text = T("VICTORY")
                 self.play_snd(SND_WIN)
                 self.set_battle_phrase(random.choice(BATTLE_WIN_PHRASES))
                 # Титан отримує XP за перемогу
@@ -10311,12 +10902,73 @@ class Game:
                             if not any(getattr(c, '_super_human_orig', None) == sh[0] for c in self.all_heroes):
                                 nc = create_super_human_card(sh)
                                 self.all_heroes.append(nc)
-                self.reward_text = f"+{g} 🪙  +{o} ⛏️  +{d} 💎" + (f" +{added_keys} 🔑" if added_keys > 0 else "") + _sh_reward_text
+                # ── Комбо-система ─────────────────────────────────────
+                self.total_wins     = getattr(self, 'total_wins', 0) + 1
+                self.battles_fought = getattr(self, 'battles_fought', 0) + 1
+                self.gold_earned    = getattr(self, 'gold_earned', 0) + g
+                _now = time.time()
+                _last_combo = getattr(self, 'combo_timer', 0)
+                if _now - _last_combo < 30:  # якщо перемога протягом 30 сек — комбо
+                    self.combo_count = getattr(self, 'combo_count', 0) + 1
+                else:
+                    self.combo_count = 1
+                self.combo_timer = _now
+                _combo = self.combo_count
+                # Комбо бонус до нагороди
+                if _combo >= 5:
+                    _combo_bonus = int(g * 1.0)
+                    self.gold += _combo_bonus
+                    g += _combo_bonus
+                    self.combo_flash_msg = f"🔥 КОМБО x{_combo}! +{_combo_bonus} 🪙 БОНУС!"
+                    self.combo_flash_t = _now
+                elif _combo >= 3:
+                    _combo_bonus = int(g * 0.5)
+                    self.gold += _combo_bonus
+                    g += _combo_bonus
+                    self.combo_flash_msg = f"⚡ КОМБО x{_combo}! +{_combo_bonus} 🪙"
+                    self.combo_flash_t = _now
+                elif _combo >= 2:
+                    self.combo_flash_msg = f"✨ КОМБО x{_combo}!"
+                    self.combo_flash_t = _now
+                # Серія перемог
+                self.win_streak = getattr(self, 'win_streak', 0) + 1
+                if self.win_streak > getattr(self, 'best_win_streak', 0):
+                    self.best_win_streak = self.win_streak
+                # Досягнення
+                _ach = getattr(self, 'achievements', {})
+                if self.total_wins >= 1   and not _ach.get('first_win'):
+                    _ach['first_win'] = True
+                    getattr(self, 'achievement_queue', []).append("🏆 Перша перемога!")
+                if self.total_wins >= 10  and not _ach.get('ten_wins'):
+                    _ach['ten_wins'] = True
+                    getattr(self, 'achievement_queue', []).append("🥈 10 перемог!")
+                    self.diamonds += 20
+                if self.total_wins >= 50  and not _ach.get('fifty_wins'):
+                    _ach['fifty_wins'] = True
+                    getattr(self, 'achievement_queue', []).append("🥇 50 перемог! +50💎")
+                    self.diamonds += 50
+                if self.total_wins >= 100 and not _ach.get('hundred_wins'):
+                    _ach['hundred_wins'] = True
+                    getattr(self, 'achievement_queue', []).append("👑 100 перемог! +100💎")
+                    self.diamonds += 100
+                if getattr(self, 'best_win_streak', 0) >= 10 and not _ach.get('streak_10'):
+                    _ach['streak_10'] = True
+                    getattr(self, 'achievement_queue', []).append("🔥 Серія 10 перемог! +30💎")
+                    self.diamonds += 30
+                self.achievements = _ach
+                # ── Нагорода ──────────────────────────────────────────────
+                _combo_str = f" 🔥x{_combo}" if _combo >= 2 else ""
+                self.reward_text = f"+{g} 🪙  +{o} ⛏️  +{d} 💎{_combo_str}" + (f" +{added_keys} 🔑" if added_keys > 0 else "") + _sh_reward_text
                 self.save_game()
             else:
-                self.winner_text = "ПОРАЗКА..."; self.reward_text = "Герої пали на полі бою!"
+                self.winner_text = T("DEFEAT"); self.reward_text = T("DEFEAT_MSG")
                 self.play_snd(SND_LOSE)
                 self.set_battle_phrase(random.choice(BATTLE_LOSE_PHRASES))
+                self.total_losses   = getattr(self, 'total_losses', 0) + 1
+                self.battles_fought = getattr(self, 'battles_fought', 0) + 1
+                self.win_streak     = 0  # скидаємо серію
+                self.combo_count    = 0
+                self.save_game()
             self.sh_is_battle = False
             self._pending_enemy_attack = None
             self.state = GAME_OVER
@@ -10564,18 +11216,24 @@ class Game:
 
         # ══════════════════════════════════════════════════════
         # ФАЗА 3 — КОНТРАТАКА ВОРОГА (відкладена: зберігаємо в _pending_enemy_attack)
+        # Блокуємо ТІЛЬКИ якщо є реальне LAN/Online з'єднання (гравець vs гравець)
+        # AI симуляція (lb_lan_conn == None) завжди контратакує!
         # ══════════════════════════════════════════════════════
-        _lan_pvp_ex = (getattr(self,'_lb_is_lan_pvp',False) and getattr(self,'lb_lan_conn',None) is not None)
+        _real_pvp = (
+            (getattr(self,'_lb_is_lan_pvp',False) and getattr(self,'lb_lan_conn',None) is not None)
+            or getattr(self,'_lb_is_online_pvp',False)
+        )
         living_m2 = [m for m in self.enemies if m.is_alive]
         living_h2 = [h for h in self.army    if h.is_alive]
-        if living_m2 and living_h2 and not _lan_pvp_ex:
+        if living_m2 and living_h2 and not _real_pvp:
             enemy_attacker = random.choice(living_m2)
             target_hero    = random.choice(living_h2)
             # Зберігаємо контратаку — вона виконається через 0.9 сек (в game loop)
             self._pending_enemy_attack = {
                 "attacker": enemy_attacker,
                 "target":   target_hero,
-                "time":     time.time() + 0.9,   # затримка 0.9 сек
+                "time":     time.time() + 0.9,
+                "state":    self.state,   # запам'ятовуємо стан — BATTLE або LB_BATTLE
             }
             self.set_battle_phrase(f"⚠️ {enemy_attacker.name} готується до удару...")
 
@@ -10586,27 +11244,30 @@ class Game:
             if _rh.is_alive and getattr(_rh,'evolved',False) and getattr(_rh,'regen',0) > 0:
                 _rh.hp = min(_rh.max_hp, _rh.hp + _rh.regen)
 
-        # --- Здібність активного Титана ---
-        _lan_pvp_ta = getattr(self,'_lb_is_lan_pvp',False)
-        t_ability   = TITAN_ABILITIES.get(self.titan_id)
-        if t_ability and not _lan_pvp_ta:
-            _em, _nm, _dc, _trigger_hits, _key = t_ability
-            if self.total_hits in _trigger_hits and self.total_hits not in self.titan_used_hits:
-                t_level   = self.titan_levels.get(self.titan_id, 1)
-                phrase_ta = apply_titan_ability(self, _key, t_level)
-                if phrase_ta: self.set_battle_phrase(phrase_ta)
-                self.titan_used_hits.add(self.total_hits)
+        # --- Здібність активного Титана (тільки не в реальному PvP) ---
+        if not _real_pvp:
+            t_ability = TITAN_ABILITIES.get(self.titan_id)
+            if t_ability:
+                _em, _nm, _dc, _trigger_hits, _key = t_ability
+                if self.total_hits in _trigger_hits and self.total_hits not in self.titan_used_hits:
+                    t_level   = self.titan_levels.get(self.titan_id, 1)
+                    phrase_ta = apply_titan_ability(self, _key, t_level)
+                    if phrase_ta: self.set_battle_phrase(phrase_ta)
+                    self.titan_used_hits.add(self.total_hits)
 
-        # Скидаємо таймер ходу якщо LAN PvP
-        if getattr(self,'_lb_is_lan_pvp',False):
+        # Скидаємо таймер ходу якщо реальний LAN PvP
+        if getattr(self,'_lb_is_lan_pvp',False) and getattr(self,'lb_lan_conn',None) is not None:
             self.lb_turn_timer_start = time.time()
             self.lb_turn_timeout     = self.lb_get_turn_timeout()
         hero.selected = monster.selected = False
         self.selected_hero = self.selected_monster = None
         # Якщо є відкладена атака ворога — check_end_game буде після неї
-        # Якщо немає (LAN/PvP або всі вороги мертві) — перевіряємо одразу
+        # Якщо немає (реальний PvP або всі вороги мертві) — перевіряємо одразу
         if not getattr(self, '_pending_enemy_attack', None):
-            self.check_end_game()
+            if self.state == LB_BATTLE:
+                self.lb_check_end()
+            else:
+                self.check_end_game()
 
 
 def main():
@@ -10866,7 +11527,8 @@ def main():
 
         # ── Відкладена контратака ворога (BATTLE стан) ──────────────────────
         _pea = getattr(game, '_pending_enemy_attack', None)
-        if _pea and game.state == BATTLE and time.time() >= _pea["time"]:
+        _pea_state = _pea.get("state", BATTLE) if _pea else BATTLE
+        if _pea and game.state in (BATTLE, LB_BATTLE) and game.state == _pea_state and time.time() >= _pea["time"]:
             game._pending_enemy_attack = None
             _ea_attacker = _pea["attacker"]
             _ea_target   = _pea["target"]
@@ -10874,7 +11536,8 @@ def main():
             if _ea_attacker.is_alive and _ea_target.is_alive:
                 ecx2, ecy2 = _card_center(_ea_attacker)
                 thcx, thcy = _card_center(_ea_target)
-                # Здібності ворога
+
+                # ── ФАЗА 1: Здібності ворога (з шансом спрацювання) ──
                 e_abilities = get_abilities_for_card(_ea_attacker)
                 if e_abilities:
                     e_stars  = len(e_abilities)
@@ -10884,35 +11547,101 @@ def main():
                             apply_ability(ea, _ea_attacker, _ea_target,
                                           [_ea_attacker], [_ea_target])
                             spawn_ability_effect(ea[1], ecx2, ecy2, thcx, thcy)
-                # Щит / ухилення героя
+
+                # ── ФАЗА 2: Фізичний удар ворога ──
+                _hit_landed = False   # чи вдар пройшов
                 _htshield = getattr(_ea_target, '_shielded_until', 0)
                 if time.time() < _htshield:
-                    game.set_battle_phrase(f"🛡️ {_ea_target.name} заблокував удар!")
+                    # Щит заблокував удар — шкоди немає, ефект щита
+                    spawn_ability_effect("Щит", ecx2, ecy2, thcx, thcy)
+                    game.set_battle_phrase(f"🛡️ {_ea_target.name} заблокував удар {_ea_attacker.name}!")
+                    game.play_snd(SND_HIT)
                 else:
                     _htdodge = getattr(_ea_target, '_dodge_until', 0)
                     if time.time() < _htdodge and random.random() < 0.5:
-                        game.set_battle_phrase(f"🦅 {_ea_target.name} ухилився!")
+                        # Ухилення — шкоди немає
+                        game.set_battle_phrase(f"🦅 {_ea_target.name} ухилився від {_ea_attacker.name}!")
+                        game.play_snd(SND_HIT)
                     else:
+                        # ── Удар проходить — знімаємо HP ──
+                        _hit_landed = True
                         e_atk = _ea_attacker.attack
-                        _ea_target.hp -= e_atk
-                        _ea_target.offset_y = 20
+                        _ea_target.hp  -= e_atk
+                        _ea_target.offset_y = 20   # анімація відкидання
                         spawn_ability_effect("Вогонь", ecx2, ecy2, thcx, thcy)
                         game.play_snd(SND_HIT)
-                        game.set_battle_phrase(f"💥 {_ea_attacker.name} завдає {e_atk} шкоди {_ea_target.name}!")
-                    if _ea_target.hp <= 0:
-                        _ea_target.is_alive = False
-                        _ea_target.level = max(1, _ea_target.level - 1)
-                        _ea_target.xp = 0; _ea_target._update_stats()
-                        if _ea_target in game.all_heroes: game.all_heroes.remove(_ea_target)
-                        if _ea_target in game.army:       game.army.remove(_ea_target)
-                        game.graveyard.append(_ea_target)
-                        attacker_stars = len(get_abilities_for_card(_ea_attacker))
-                        spawn_death_effect(thcx, thcy, attacker_stars)
-                        game.play_snd(SND_HERO_DIE)
-                        game.set_battle_phrase(random.choice(BATTLE_HERO_DIE_PHRASES))
-            # Тепер перевіряємо кінець бою
-            game.check_end_game()
+                        game.set_battle_phrase(
+                            f"💥 {_ea_attacker.name} завдає {e_atk} шкоди "
+                            f"{_ea_target.name}! (HP: {max(0,_ea_target.hp)}/{_ea_target.max_hp})"
+                        )
+                        # ── Ворог отримує XP за вдалий удар ──
+                        _ea_attacker.add_xp()
 
+                # ── ФАЗА 3: Перевірка смерті героя (ЗАВЖДИ, навіть після щита) ──
+                if _ea_target.hp <= 0:
+                    _ea_target.is_alive = False
+                    _ea_target.hp       = 0
+                    # Штраф за смерть — втрата рівня (але не нижче 1)
+                    _ea_target.level = max(1, _ea_target.level - 1)
+                    _ea_target.xp    = 0
+                    _ea_target._update_stats()
+                    # Прибираємо з армії
+                    if _ea_target in game.army:       game.army.remove(_ea_target)
+                    if _ea_target in game.all_heroes: game.all_heroes.remove(_ea_target)
+                    game.graveyard.append(_ea_target)
+                    # XP ворогу за вбивство
+                    _ea_attacker.add_xp()
+                    _ea_attacker.add_xp()
+                    attacker_stars = len(get_abilities_for_card(_ea_attacker))
+                    spawn_death_effect(thcx, thcy, attacker_stars)
+                    game.play_snd(SND_HERO_DIE)
+                    game.set_battle_phrase(random.choice(BATTLE_HERO_DIE_PHRASES))
+
+            # ── Перевіряємо кінець бою після контратаки ──
+            if game.state == LB_BATTLE:
+                game.lb_check_end()
+            else:
+                game.check_end_game()
+
+        # ── Комбо-спалах ──────────────────────────────────────────────
+        _SW, _SH = screen.get_size()
+        _cmsg = getattr(game, 'combo_flash_msg', '')
+        _ct   = getattr(game, 'combo_flash_t', 0.0)
+        if _cmsg and time.time() - _ct < 2.5:
+            _alpha = max(0, 1.0 - (time.time()-_ct)/2.5)
+            _cf_surf = font_bold.render(_cmsg, True, (255, 230, 50))
+            _cf_surf.set_alpha(int(_alpha*255))
+            screen.blit(_cf_surf, _cf_surf.get_rect(centerx=_SW//2, y=int(_SH*0.12)))
+        elif _cmsg and time.time() - _ct >= 2.5:
+            game.combo_flash_msg = ""
+
+        # ── Досягнення/щоденна нагорода popup ────────────────────────
+        _aq = getattr(game, 'achievement_queue', [])
+        if _aq:
+            if not hasattr(game, '_ach_show_t') or game._ach_show_t == 0:
+                game._ach_show_t = time.time()
+            _elapsed = time.time() - game._ach_show_t
+            if _elapsed < 3.5:
+                _amsg  = _aq[0]
+                if _elapsed < 0.3:
+                    _alpha2 = _elapsed/0.3
+                elif _elapsed > 2.5:
+                    _alpha2 = max(0.0, 1.0-(_elapsed-2.5)/1.0)
+                else:
+                    _alpha2 = 1.0
+                _ach_bg = pygame.Surface((500, 58), pygame.SRCALPHA)
+                _ach_bg.fill((20, 20, 50, int(200*_alpha2)))
+                _bx, _by = (_SW-500)//2, int(_SH*0.87)
+                screen.blit(_ach_bg, (_bx, _by))
+                pygame.draw.rect(screen, (255,215,0), (_bx, _by, 500, 58), 2, border_radius=12)
+                _as = font_bold.render(_amsg, True, (255, 235, 80))
+                _as.set_alpha(int(255*_alpha2))
+                screen.blit(_as, _as.get_rect(centerx=_SW//2, centery=_by+29))
+            else:
+                _aq.pop(0)
+                game._ach_show_t = 0
+
+        game._check_pending_payments()
         pygame.display.flip(); clock.tick(60)
 
 if __name__ == "__main__":
