@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3,ogg
 source.exclude_dirs = dist,__pycache__,.buildozer,build
 source.main = main.py
 version = 0.2
-requirements = python3==3.10.14,hostpython3==3.10.14,pygame_ce==2.4.1
+requirements = python3==3.10.14,hostpython3==3.10.14,pygame_ce
 orientation = landscape
 fullscreen = 1
 android.permissions = INTERNET
