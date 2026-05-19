@@ -1,7 +1,4 @@
-try:
-    import pygame
-except ImportError:
-    import pygame_ce as pygame
+import pygame
 
 def _open_url(url):
     """Відкриває URL у браузері — працює на Windows, macOS та Linux."""
