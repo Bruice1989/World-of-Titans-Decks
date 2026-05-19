@@ -1,4 +1,4 @@
-﻿try:
+try:
     import pygame
 except ImportError:
     import pygame_ce as pygame
@@ -6247,8 +6247,8 @@ class Game:
                     returned = card.runes.pop(0)  # знімаємо першу руну
                     returned.pop("for_titan", None)
                     self.my_runes.append(returned)
-                    name = returned["name"]
-self.rune_msg = f"Руну {name} знято і повернуто до Моїх Рун!"
+                    _rune_name = returned["name"]
+                    self.rune_msg = f"Руну {_rune_name} знято і повернуто до Моїх Рун!"
                     if not card.runes:
                         self.remove_rune_selected_card = None
                     self.save_game()
