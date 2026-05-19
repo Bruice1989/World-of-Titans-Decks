@@ -1,13 +1,13 @@
-def pre_build(ctx):
-    import shutil, os, glob
-    # Шукаємо pygame в усіх можливих місцях
-    base = ctx.build_dir
-    patterns = [
-        os.path.join(base, "python-installs", "*", "*", "pygame"),
-        os.path.join(base, "other_builds", "pygame*"),
-    ]
-    for pattern in patterns:
-        for path in glob.glob(pattern):
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-                print(f"Видалено: {path}")
+def post_build_arch(ctx, arch):
+    import shutil, os
+    # Видаляємо старий pygame з python-installs після збірки
+    pygame_path = os.path.join(
+        ctx.build_dir,
+        "python-installs",
+        "worldtitans",
+        arch.arch,
+        "pygame"
+    )
+    if os.path.exists(pygame_path):
+        shutil.rmtree(pygame_path)
+        print(f">>> Видалено старий pygame з python-installs: {pygame_path}")
