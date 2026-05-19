@@ -88,9 +88,15 @@ jobs:
           GRADLE_OPTS: "-Xmx4g"
         run: |
           export CYTHON=$(which cython)
-          echo "Cython знайдено: $CYTHON"
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
+          PYGAME_PATH=$(find .buildozer -path "*/python-installs/worldtitans/*/pygame" -type d 2>/dev/null | head -1)
+          if [ -n "$PYGAME_PATH" ]; then
+            echo "Знайдено старий pygame: $PYGAME_PATH"
+            rm -rf "$PYGAME_PATH"
+            echo "Видалено! Перебудовуємо APK..."
+            buildozer -v android debug 2>&1 | tee -a logs/build.log
+          fi
         continue-on-error: true
 
       - name: Find APK
