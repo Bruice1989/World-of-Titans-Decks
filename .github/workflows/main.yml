@@ -94,10 +94,7 @@ jobs:
 
       - name: Fix pygame - copy from site-packages to python-installs
         run: |
-          # Перебудовуємо APK спочатку
-          buildozer -v android debug 2>&1 | tee -a logs/build.log
-
-          # Після збірки видаляємо x86_64 pygame
+          # Видаляємо x86_64 pygame
           find .buildozer -path "*/python-installs/worldtitans/*/pygame" -type d -exec rm -rf {} + 2>/dev/null || true
 
           # Знаходимо правильний arm64 pygame
@@ -112,9 +109,13 @@ jobs:
             echo "Скопійовано arm64 pygame!"
           fi
 
-          # Пакуємо APK вручну без перекомпіляції python
-          cd .buildozer/android/platform/build-arm64-v8a/dists/worldtitans
-          ./gradlew assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
+          # Пакуємо тільки через gradlew без перекомпіляції
+          DIST_DIR=$(find .buildozer -name "gradlew" -type f 2>/dev/null | head -1 | xargs dirname)
+          echo "Dist dir: $DIST_DIR"
+          if [ -n "$DIST_DIR" ]; then
+            cd "$DIST_DIR"
+            ./gradlew assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
+          fi
         continue-on-error: true
 
       - name: Find APK
