@@ -106,15 +106,20 @@ jobs:
 
           if [ -n "$PYGAME_SRC" ] && [ -n "$INSTALL_DIR" ]; then
             cp -r "$PYGAME_SRC" "$INSTALL_DIR/pygame"
-            echo "Скопійовано arm64 pygame!"
+            echo "Скопійовано arm64 pygame до python-installs!"
           fi
 
-          # Пакуємо через gradlew з правильної папки
-          DIST_DIR=$(find .buildozer -path "*/dists/worldtitans" -name "gradlew" -type f 2>/dev/null | head -1 | xargs dirname)
-          echo "Dist dir: $DIST_DIR"
-          if [ -n "$DIST_DIR" ]; then
+          # Знаходимо gradlew
+          GRADLEW=$(find .buildozer -name "gradlew" -type f 2>/dev/null | head -1)
+          echo "Gradlew: $GRADLEW"
+          if [ -n "$GRADLEW" ]; then
+            DIST_DIR=$(dirname "$GRADLEW")
+            echo "Dist dir: $DIST_DIR"
             cd "$DIST_DIR"
             ./gradlew assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
+          else
+            echo "gradlew не знайдено!"
+            find .buildozer -name "*.gradle" 2>/dev/null | head -10
           fi
         continue-on-error: true
 
