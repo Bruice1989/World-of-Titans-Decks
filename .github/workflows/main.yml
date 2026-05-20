@@ -120,7 +120,7 @@ jobs:
           echo "Gradlew: $GRADLEW"
           if [ -n "$GRADLEW" ]; then
             cd "$(dirname "$GRADLEW")"
-            ./gradlew assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
+            ./gradlew clean assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
           else
             echo "gradlew не знайдено в dists!"
             find .buildozer -name "gradlew" 2>/dev/null
