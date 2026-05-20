@@ -99,7 +99,7 @@ jobs:
 
           # Знаходимо правильний arm64 pygame
           INSTALL_DIR=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a" -type d 2>/dev/null | head -1)
-          PYGAME_SRC=$(find .buildozer -path "*/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
+          PYGAME_SRC=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
 
           echo "Install dir: $INSTALL_DIR"
           echo "Pygame src: $PYGAME_SRC"
@@ -109,8 +109,8 @@ jobs:
             echo "Скопійовано arm64 pygame!"
           fi
 
-          # Пакуємо тільки через gradlew без перекомпіляції
-          DIST_DIR=$(find .buildozer -name "gradlew" -type f 2>/dev/null | head -1 | xargs dirname)
+          # Пакуємо через gradlew з правильної папки
+          DIST_DIR=$(find .buildozer -path "*/dists/worldtitans" -name "gradlew" -type f 2>/dev/null | head -1 | xargs dirname)
           echo "Dist dir: $DIST_DIR"
           if [ -n "$DIST_DIR" ]; then
             cd "$DIST_DIR"
