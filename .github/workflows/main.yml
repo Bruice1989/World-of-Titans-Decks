@@ -94,31 +94,36 @@ jobs:
 
       - name: Fix pygame - replace in _python_bundle before gradlew
         run: |
-          # Знаходимо bundle dir
           BUNDLE_DIR=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle" -type d 2>/dev/null | head -1)
           echo "Bundle dir: $BUNDLE_DIR"
 
           if [ -n "$BUNDLE_DIR" ]; then
-            # Видаляємо x86_64 pygame з bundle
+            # Видаляємо x86_64 pygame
             rm -rf "$BUNDLE_DIR/site-packages/pygame"
-            echo "Видалено x86_64 pygame з bundle!"
+            echo "Видалено x86_64 pygame!"
 
-            # Перевіряємо що є в bundle
-            echo "Вміст site-packages:"
+            # Шукаємо pygame_ce папку в python-installs
+            PYGAME_CE=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
+            echo "pygame_ce source: $PYGAME_CE"
+
+            if [ -n "$PYGAME_CE" ]; then
+              cp -r "$PYGAME_CE" "$BUNDLE_DIR/site-packages/pygame"
+              echo "Скопійовано pygame_ce як pygame!"
+            fi
+
+            echo "Вміст після копіювання:"
             ls "$BUNDLE_DIR/site-packages/" | grep pygame
           fi
 
-          # Знаходимо gradlew
-          GRADLEW=$(find .buildozer -name "gradlew" -type f 2>/dev/null | head -1)
+          # Знаходимо правильний gradlew в dists
+          GRADLEW=$(find .buildozer -path "*/dists/worldtitans/gradlew" -type f 2>/dev/null | head -1)
           echo "Gradlew: $GRADLEW"
           if [ -n "$GRADLEW" ]; then
-            DIST_DIR=$(dirname "$GRADLEW")
-            echo "Dist dir: $DIST_DIR"
-            cd "$DIST_DIR"
+            cd "$(dirname "$GRADLEW")"
             ./gradlew assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
           else
-            echo "gradlew не знайдено!"
-            find .buildozer -name "*.gradle" 2>/dev/null | head -10
+            echo "gradlew не знайдено в dists!"
+            find .buildozer -name "gradlew" 2>/dev/null
           fi
         continue-on-error: true
 
