@@ -94,36 +94,36 @@ jobs:
 
       - name: Fix pygame - replace in _python_bundle before gradlew
         run: |
+          BUNDLE_PYGAME=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
+          INSTALL_PYGAME=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
           BUNDLE_DIR=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle" -type d 2>/dev/null | head -1)
+
+          echo "Bundle pygame: $BUNDLE_PYGAME"
+          echo "Install pygame: $INSTALL_PYGAME"
           echo "Bundle dir: $BUNDLE_DIR"
 
-          if [ -n "$BUNDLE_DIR" ]; then
-            # Видаляємо x86_64 pygame
-            rm -rf "$BUNDLE_DIR/site-packages/pygame"
-            echo "Видалено x86_64 pygame!"
-
-            # Шукаємо pygame_ce папку в python-installs
-            PYGAME_CE=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
-            echo "pygame_ce source: $PYGAME_CE"
-
-            if [ -n "$PYGAME_CE" ]; then
-              cp -r "$PYGAME_CE" "$BUNDLE_DIR/site-packages/pygame"
-              echo "Скопійовано pygame_ce як pygame!"
-            fi
-
-            echo "Вміст після копіювання:"
-            ls "$BUNDLE_DIR/site-packages/" | grep pygame
+          # Видаляємо x86_64 pygame з python-installs
+          if [ -n "$INSTALL_PYGAME" ]; then
+            rm -rf "$INSTALL_PYGAME"
+            echo "Видалено x86_64 з python-installs!"
           fi
 
-          # Знаходимо правильний gradlew в dists
+          # Видаляємо x86_64 pygame з bundle
+          if [ -n "$BUNDLE_DIR" ]; then
+            rm -rf "$BUNDLE_DIR/site-packages/pygame"
+            echo "Видалено x86_64 з bundle!"
+          fi
+
+          # Перевіряємо arm64 .so файли
+          echo "pygame_ce.libs вміст:"
+          find .buildozer -path "*/_python_bundle__arm64-v8a*pygame_ce.libs*" -name "*.so" 2>/dev/null | head -5
+
+          # Знаходимо gradlew
           GRADLEW=$(find .buildozer -path "*/dists/worldtitans/gradlew" -type f 2>/dev/null | head -1)
           echo "Gradlew: $GRADLEW"
           if [ -n "$GRADLEW" ]; then
             cd "$(dirname "$GRADLEW")"
             ./gradlew clean assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
-          else
-            echo "gradlew не знайдено в dists!"
-            find .buildozer -name "gradlew" 2>/dev/null
           fi
         continue-on-error: true
 
