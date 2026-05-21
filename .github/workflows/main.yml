@@ -92,39 +92,22 @@ jobs:
           buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
 
-      - name: Fix pygame - replace in _python_bundle before gradlew
+      - name: Diagnose pygame locations
         run: |
-          BUNDLE_PYGAME=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
-          INSTALL_PYGAME=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
-          BUNDLE_DIR=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle" -type d 2>/dev/null | head -1)
-
-          echo "Bundle pygame: $BUNDLE_PYGAME"
-          echo "Install pygame: $INSTALL_PYGAME"
-          echo "Bundle dir: $BUNDLE_DIR"
-
-          # Видаляємо x86_64 pygame з python-installs
-          if [ -n "$INSTALL_PYGAME" ]; then
-            rm -rf "$INSTALL_PYGAME"
-            echo "Видалено x86_64 з python-installs!"
-          fi
-
-          # Видаляємо x86_64 pygame з bundle
-          if [ -n "$BUNDLE_DIR" ]; then
-            rm -rf "$BUNDLE_DIR/site-packages/pygame"
-            echo "Видалено x86_64 з bundle!"
-          fi
-
-          # Перевіряємо arm64 .so файли
-          echo "pygame_ce.libs вміст:"
-          find .buildozer -path "*/_python_bundle__arm64-v8a*pygame_ce.libs*" -name "*.so" 2>/dev/null | head -5
-
-          # Знаходимо gradlew
-          GRADLEW=$(find .buildozer -path "*/dists/worldtitans/gradlew" -type f 2>/dev/null | head -1)
-          echo "Gradlew: $GRADLEW"
-          if [ -n "$GRADLEW" ]; then
-            cd "$(dirname "$GRADLEW")"
-            ./gradlew clean assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
-          fi
+          echo "=== Всі arm64 .so файли pygame ==="
+          find .buildozer -name "*.so" | grep -v x86 | grep -i pygame | head -20
+          echo "==="
+          echo "=== Всі .so в _python_bundle__arm64-v8a ==="
+          find .buildozer -path "*_python_bundle__arm64-v8a*" -name "*.so" | head -20
+          echo "==="
+          echo "=== Вміст _python_bundle__arm64-v8a/site-packages ==="
+          find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages" -type d 2>/dev/null | head -1 | xargs ls 2>/dev/null
+          echo "==="
+          echo "=== Всі pygame папки ==="
+          find .buildozer -name "pygame" -type d 2>/dev/null
+          echo "==="
+          echo "=== base.so файли ==="
+          find .buildozer -name "base*.so" 2>/dev/null
         continue-on-error: true
 
       - name: Find APK
