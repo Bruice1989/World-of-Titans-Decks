@@ -92,31 +92,6 @@ jobs:
           buildozer -v android debug 2>&1 | tee logs/build.log
         continue-on-error: true
 
-      - name: Fix pygame in assets zip
-        run: |
-          PYGAME_ARM64=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
-          INSTALL_PYGAME=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
-
-          echo "ARM64 pygame: $PYGAME_ARM64"
-          echo "Install pygame: $INSTALL_PYGAME"
-
-          # Замінюємо x86_64 pygame в python-installs на arm64
-          if [ -n "$PYGAME_ARM64" ] && [ -n "$INSTALL_PYGAME" ]; then
-            rm -rf "$INSTALL_PYGAME"
-            cp -r "$PYGAME_ARM64" "$INSTALL_PYGAME"
-            echo "Замінено pygame в python-installs на arm64!"
-            echo "Перевірка base.so:"
-            file "$INSTALL_PYGAME/base.so" 2>/dev/null || echo "base.so не знайдено"
-          fi
-
-          GRADLEW=$(find .buildozer -path "*/dists/worldtitans/gradlew" -type f 2>/dev/null | head -1)
-          echo "Gradlew: $GRADLEW"
-          if [ -n "$GRADLEW" ]; then
-            cd "$(dirname "$GRADLEW")"
-            ./gradlew clean assembleDebug 2>&1 | tee -a /home/runner/work/World-of-Titans-Decks/World-of-Titans-Decks/logs/build.log
-          fi
-        continue-on-error: true
-
       - name: Find APK
         if: always()
         run: |
