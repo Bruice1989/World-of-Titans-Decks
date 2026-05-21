@@ -94,43 +94,21 @@ jobs:
 
       - name: Fix pygame in assets zip
         run: |
-          # Знаходимо arm64 pygame
           PYGAME_ARM64=$(find .buildozer -path "*/_python_bundle__arm64-v8a/_python_bundle/site-packages/pygame" -type d 2>/dev/null | head -1)
+          INSTALL_PYGAME=$(find .buildozer -path "*/python-installs/worldtitans/arm64-v8a/pygame" -type d 2>/dev/null | head -1)
+
           echo "ARM64 pygame: $PYGAME_ARM64"
+          echo "Install pygame: $INSTALL_PYGAME"
 
-          # Знаходимо всі zip що містять pygame
-          echo "Zip файли з pygame:"
-          find .buildozer -name "*.zip" -exec sh -c 'zipinfo "$1" 2>/dev/null | grep -q "pygame/base" && echo "$1"' _ {} \; 2>/dev/null
-
-          # Знаходимо assets zip
-          ASSETS_ZIP=$(find .buildozer -name "*.zip" -exec sh -c 'zipinfo "$1" 2>/dev/null | grep -q "pygame/base" && echo "$1"' _ {} \; 2>/dev/null | head -1)
-          echo "Assets zip: $ASSETS_ZIP"
-
-          if [ -n "$ASSETS_ZIP" ] && [ -n "$PYGAME_ARM64" ]; then
-            echo "Замінюємо pygame в zip..."
-            cd /tmp
-            mkdir -p fix_pygame
-            cd fix_pygame
-            # Розпаковуємо zip
-            unzip -q "$OLDPWD/$ASSETS_ZIP" 2>/dev/null || unzip -q "$ASSETS_ZIP" 2>/dev/null || true
-            # Видаляємо x86_64 pygame
-            find . -path "*/pygame/*" -name "*.so" -delete 2>/dev/null || true
-            find . -name "pygame" -type d | while read d; do
-              rm -rf "$d"
-            done
-            # Копіюємо arm64 pygame
-            SITE_PACKAGES=$(find . -name "site-packages" -type d 2>/dev/null | head -1)
-            if [ -n "$SITE_PACKAGES" ]; then
-              cp -r "$PYGAME_ARM64" "$SITE_PACKAGES/pygame"
-              echo "Скопійовано arm64 pygame в zip!"
-            fi
-            # Перепаковуємо
-            zip -qr "$ASSETS_ZIP" . 2>/dev/null || true
-            cd ..
-            rm -rf fix_pygame
+          # Замінюємо x86_64 pygame в python-installs на arm64
+          if [ -n "$PYGAME_ARM64" ] && [ -n "$INSTALL_PYGAME" ]; then
+            rm -rf "$INSTALL_PYGAME"
+            cp -r "$PYGAME_ARM64" "$INSTALL_PYGAME"
+            echo "Замінено pygame в python-installs на arm64!"
+            echo "Перевірка base.so:"
+            file "$INSTALL_PYGAME/base.so" 2>/dev/null || echo "base.so не знайдено"
           fi
 
-          # Знаходимо gradlew
           GRADLEW=$(find .buildozer -path "*/dists/worldtitans/gradlew" -type f 2>/dev/null | head -1)
           echo "Gradlew: $GRADLEW"
           if [ -n "$GRADLEW" ]; then
