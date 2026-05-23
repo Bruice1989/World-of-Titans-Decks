@@ -17,7 +17,6 @@ class PygameCERecipe(CythonRecipe):
         sdl2_dir = sdl2_recipe.get_build_dir(arch.arch)
         sdl2_include = join(sdl2_dir, 'include')
 
-        # Створюємо фейковий sdl2-config
         fake_sdl2_config = join(self.ctx.build_dir, 'fake_sdl2_config')
         with open(fake_sdl2_config, 'w') as f:
             f.write('#!/bin/sh\n')
@@ -30,7 +29,25 @@ class PygameCERecipe(CythonRecipe):
 
         env['SDL_CONFIG'] = fake_sdl2_config
         env['CFLAGS'] += f' -I{sdl2_include}'
+        # Вимикаємо модулі які потребують X11
+        env['PYGAME_SCRAP'] = 'no'
+        env['PYGAME_FREESANS'] = 'no'
         return env
+
+    def build_arch(self, arch):
+        build_dir = self.get_build_dir(arch.arch)
+        # Патчимо setup.py щоб виключити scrap
+        setup_py = join(build_dir, 'setup.py')
+        if os.path.exists(setup_py):
+            with open(setup_py, 'r') as f:
+                content = f.read()
+            content = content.replace(
+                "'scrap'",
+                "'scrap_disabled'"
+            )
+            with open(setup_py, 'w') as f:
+                f.write(content)
+        super().build_arch(arch)
 
 
 recipe = PygameCERecipe()
