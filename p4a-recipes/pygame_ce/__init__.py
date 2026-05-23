@@ -16,17 +16,21 @@ class PygameCERecipe(CythonRecipe):
         sdl2_recipe = self.get_recipe('sdl2', self.ctx)
         sdl2_dir = sdl2_recipe.get_build_dir(arch.arch)
         sdl2_include = join(sdl2_dir, 'include')
-        env['SDL_CONFIG'] = 'true'
-        env['CFLAGS'] += f' -I{sdl2_include}'
-        env['PYGAME_SDL2_PREFIX'] = sdl2_dir
-        return env
 
-    def build_arch(self, arch):
-        build_dir = self.get_build_dir(arch.arch)
-        env = self.get_recipe_env(arch)
-        # Пропускаємо config і компілюємо напряму
-        env['PYGAME_CROSS_COMPILE'] = '1'
-        super().build_arch(arch)
+        # Створюємо фейковий sdl2-config
+        fake_sdl2_config = join(self.ctx.build_dir, 'fake_sdl2_config')
+        with open(fake_sdl2_config, 'w') as f:
+            f.write('#!/bin/sh\n')
+            f.write('case "$1" in\n')
+            f.write('  --version) echo "2.0.20" ;;\n')
+            f.write(f'  --cflags) echo "-I{sdl2_include}" ;;\n')
+            f.write('  --libs) echo "-lSDL2" ;;\n')
+            f.write('esac\n')
+        os.chmod(fake_sdl2_config, 0o755)
+
+        env['SDL_CONFIG'] = fake_sdl2_config
+        env['CFLAGS'] += f' -I{sdl2_include}'
+        return env
 
 
 recipe = PygameCERecipe()
