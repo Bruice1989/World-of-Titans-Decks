@@ -1,6 +1,7 @@
 from pythonforandroid.recipe import CythonRecipe
 from os.path import join
 import os
+import glob
 
 
 class PygameCERecipe(CythonRecipe):
@@ -29,24 +30,28 @@ class PygameCERecipe(CythonRecipe):
 
         env['SDL_CONFIG'] = fake_sdl2_config
         env['CFLAGS'] += f' -I{sdl2_include}'
-        # Вимикаємо модулі які потребують X11
-        env['PYGAME_SCRAP'] = 'no'
-        env['PYGAME_FREESANS'] = 'no'
         return env
 
     def build_arch(self, arch):
         build_dir = self.get_build_dir(arch.arch)
+
+        # Видаляємо scrap.c щоб уникнути помилки з X11
+        for f in glob.glob(join(build_dir, 'src_c', 'scrap*.c')):
+            os.remove(f)
+            print(f'Видалено: {f}')
+
         # Патчимо setup.py щоб виключити scrap
         setup_py = join(build_dir, 'setup.py')
         if os.path.exists(setup_py):
             with open(setup_py, 'r') as f:
                 content = f.read()
-            content = content.replace(
-                "'scrap'",
-                "'scrap_disabled'"
-            )
+            # Видаляємо всі рядки з scrap
+            lines = content.split('\n')
+            lines = [l for l in lines if 'scrap' not in l.lower()]
             with open(setup_py, 'w') as f:
-                f.write(content)
+                f.write('\n'.join(lines))
+            print('Патч setup.py застосовано!')
+
         super().build_arch(arch)
 
 
