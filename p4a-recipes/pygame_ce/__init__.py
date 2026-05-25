@@ -2,6 +2,7 @@ from pythonforandroid.recipe import CythonRecipe
 from os.path import join
 import os
 import glob
+import shutil
 
 
 class PygameCERecipe(CythonRecipe):
@@ -32,27 +33,28 @@ class PygameCERecipe(CythonRecipe):
         env['CFLAGS'] += f' -I{sdl2_include}'
         return env
 
-    def build_arch(self, arch):
-        build_dir = self.get_build_dir(arch.arch)
+    def prepare_build_dir(self, arch):
+        super().prepare_build_dir(arch)
+        self._patch_build_dir(arch)
 
-        # Видаляємо scrap.c щоб уникнути помилки з X11
+    def _patch_build_dir(self, arch):
+        build_dir = self.get_build_dir(arch)
+        print(f'Патчимо pygame_ce в {build_dir}')
+
+        # Видаляємо scrap файли
         for f in glob.glob(join(build_dir, 'src_c', 'scrap*.c')):
             os.remove(f)
             print(f'Видалено: {f}')
 
-        # Патчимо setup.py щоб виключити scrap
+        # Патчимо setup.py
         setup_py = join(build_dir, 'setup.py')
         if os.path.exists(setup_py):
             with open(setup_py, 'r') as f:
                 content = f.read()
-            # Видаляємо всі рядки з scrap
-            lines = content.split('\n')
-            lines = [l for l in lines if 'scrap' not in l.lower()]
+            lines = [l for l in content.split('\n') if 'scrap' not in l.lower()]
             with open(setup_py, 'w') as f:
                 f.write('\n'.join(lines))
-            print('Патч setup.py застосовано!')
-
-        super().build_arch(arch)
+            print('setup.py патч застосовано!')
 
 
 recipe = PygameCERecipe()
