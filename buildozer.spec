@@ -8,7 +8,7 @@ source.exclude_dirs = dist,__pycache__,.buildozer,build,p4a-recipes
 source.main = main.py
 version = 0.2
 
-requirements = python3==3.11.0,hostpython3==3.11.0,pygame_ce,sdl2,sdl2_image,sdl2_mixer,sdl2_ttf
+requirements = python3==3.10.14,hostpython3==3.10.14,pygame_ce,sdl2,sdl2_image,sdl2_mixer,sdl2_ttf
 
 orientation = landscape
 fullscreen = 1
