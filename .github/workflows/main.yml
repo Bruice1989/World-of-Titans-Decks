@@ -43,12 +43,19 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "build-tools;33.0.2" \
-            "platforms;android-33"
+            "platforms;android-33" \
+            "ndk;25.2.9519653"
           mkdir -p $ANDROID_HOME/licenses
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
             > $ANDROID_HOME/licenses/android-sdk-license
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
             > $ANDROID_HOME/licenses/android-sdk-preview-license
+
+      - name: Clean all caches
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf .buildozer
+          pip uninstall pygame pygame_ce -y 2>/dev/null || true
 
       - name: Install Buildozer and dependencies
         run: |
@@ -65,6 +72,12 @@ jobs:
           echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
 
       - name: Build APK
+        env:
+          GRADLE_OPTS: "-Xmx4g"
+          ANDROIDSDK: /usr/local/lib/android/sdk
+          ANDROIDNDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
+          ANDROIDAPI: "33"
+          ANDROIDMINAPI: "21"
         run: |
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
