@@ -5,9 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     name: Build APK
@@ -29,9 +26,11 @@ jobs:
             git zip unzip openjdk-17-jdk \
             python3-pip autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libtinfo5 cmake libffi-dev libssl-dev \
+            cmake libffi-dev libssl-dev \
             libltdl-dev build-essential ccache \
-            libgl1-mesa-dev libgles2-mesa-dev
+            libgl1-mesa-dev libgles2-mesa-dev \
+            libsdl2-dev libsdl2-image-dev \
+            libsdl2-mixer-dev libsdl2-ttf-dev
 
       - name: Set JAVA_HOME to Java 17
         run: |
@@ -44,38 +43,20 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "build-tools;33.0.2" \
-            "platforms;android-31" 2>/dev/null || true
-          mkdir -p $ANDROID_HOME/tools/bin
-          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-                 $ANDROID_HOME/tools/bin/sdkmanager
-          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager \
-                 $ANDROID_HOME/tools/bin/avdmanager
+            "platforms;android-33"
           mkdir -p $ANDROID_HOME/licenses
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
             > $ANDROID_HOME/licenses/android-sdk-license
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
             > $ANDROID_HOME/licenses/android-sdk-preview-license
 
-      - name: Clear old Buildozer cache
+      - name: Install Buildozer and dependencies
         run: |
-          rm -rf ~/.buildozer
-          rm -rf .buildozer
-
-      - name: Point Buildozer to system Android SDK
-        run: |
-          mkdir -p ~/.buildozer/android/platform
-          ln -s $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
-
-      - name: Install Buildozer + dependencies
-        run: |
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           pip install "Cython==0.29.37"
-          pip install "sh==1.14.3"
-          pip install "setuptools==65.5.0" "wheel==0.43.0"
-          pip install buildozer==1.5.0
-          pip install git+https://github.com/kivy/python-for-android.git@master
-          pip install appdirs colorama jinja2 meson ninja build toml packaging
-          pip install --user "Cython==0.29.37"
+          pip install "sh==2.0.6"
+          pip install buildozer
+          pip install appdirs colorama jinja2 packaging
 
       - name: Set Gradle memory
         run: |
@@ -83,42 +64,28 @@ jobs:
           echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
           echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
 
-      - name: Build APK (debug)
-        env:
-          GRADLE_OPTS: "-Xmx4g"
+      - name: Build APK
         run: |
-          export CYTHON=$(which cython)
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
-        continue-on-error: true
 
-      - name: Find APK
-        if: always()
+      - name: Find and copy APK
         run: |
-          find . -name "*.apk" 2>/dev/null || echo "APK не знайдено"
+          find . -name "*.apk" 2>/dev/null
           mkdir -p bin
-          find .buildozer -name "*.apk" -exec cp {} bin/ \; 2>/dev/null || true
+          find .buildozer -name "*.apk" -exec cp {} bin/ \;
 
-      - name: Show errors
-        if: always()
-        run: |
-          grep -i "error\|fatal\|failed\|Exception" logs/build.log | tail -20 || true
-          tail -30 logs/build.log || true
-
-      - name: Upload full build log
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-build-log
+          name: build-log
           path: logs/build.log
-          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload APK
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: WorldOfTitans-debug-apk
           path: bin/*.apk
-          if-no-files-found: warn
           retention-days: 30
