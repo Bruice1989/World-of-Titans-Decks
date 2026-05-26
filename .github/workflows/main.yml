@@ -37,14 +37,21 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
           echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK and NDK
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | $SDKMANAGER --licenses 2>/dev/null || true
+          $SDKMANAGER \
             "platform-tools" \
             "build-tools;33.0.2" \
             "platforms;android-33" \
-            "ndk;25.2.9519653"
+            "ndk;28.0.12674087"
+          # Створюємо симлінк щоб p4a знайшов sdkmanager у старому шляху
+          mkdir -p $ANDROID_HOME/tools/bin
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+                 $ANDROID_HOME/tools/bin/sdkmanager
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager \
+                 $ANDROID_HOME/tools/bin/avdmanager
           mkdir -p $ANDROID_HOME/licenses
           printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" \
             > $ANDROID_HOME/licenses/android-sdk-license
@@ -75,7 +82,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g"
           ANDROIDSDK: /usr/local/lib/android/sdk
-          ANDROIDNDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
+          ANDROIDNDK: /usr/local/lib/android/sdk/ndk/28.0.12674087
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "21"
         run: |
@@ -83,10 +90,11 @@ jobs:
           buildozer -v android debug 2>&1 | tee logs/build.log
 
       - name: Find and copy APK
+        if: always()
         run: |
-          find . -name "*.apk" 2>/dev/null
+          find . -name "*.apk" 2>/dev/null || echo "APK не знайдено"
           mkdir -p bin
-          find .buildozer -name "*.apk" -exec cp {} bin/ \;
+          find .buildozer -name "*.apk" -exec cp {} bin/ \; 2>/dev/null || true
 
       - name: Upload build log
         if: always()
@@ -97,8 +105,10 @@ jobs:
           retention-days: 7
 
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: WorldOfTitans-debug-apk
           path: bin/*.apk
+          if-no-files-found: warn
           retention-days: 30
