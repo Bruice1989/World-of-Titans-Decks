@@ -18,9 +18,11 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.ndk_api = 21
-android.archs = arm64-v8a
+android.archs = arm64-v8a, armeabi-v7a
 android.accept_sdk_license = True
 android.logcat_filters = *:S python:D
+android.sdk_path = /usr/local/lib/android/sdk
+android.ndk_path = /usr/local/lib/android/sdk/ndk/25.2.9519653
 
 p4a.bootstrap = sdl2
 p4a.branch = master
