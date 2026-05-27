@@ -45,8 +45,7 @@ jobs:
             "platform-tools" \
             "build-tools;33.0.2" \
             "platforms;android-33" \
-            "ndk;28.0.12674087"
-          # Створюємо симлінк щоб p4a знайшов sdkmanager у старому шляху
+            "ndk;25.2.9519653"
           mkdir -p $ANDROID_HOME/tools/bin
           ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
                  $ANDROID_HOME/tools/bin/sdkmanager
@@ -58,18 +57,44 @@ jobs:
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
             > $ANDROID_HOME/licenses/android-sdk-preview-license
 
+      - name: Create pygame_ce recipe
+        run: |
+          mkdir -p p4a-recipes/pygame_ce
+          cat > p4a-recipes/pygame_ce/__init__.py << 'EOF'
+          from pythonforandroid.recipe import CppCompiledComponentsPythonRecipe
+          from pythonforandroid.toolchain import current_directory
+          from os.path import join
+          import sh
+
+          class PygameCERecipe(CppCompiledComponentsPythonRecipe):
+              name = 'pygame_ce'
+              version = '2.5.3'
+              url = 'https://github.com/pygame-community/pygame-ce/archive/refs/tags/{version}.tar.gz'
+              depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
+              patches = []
+
+              def get_recipe_env(self, arch):
+                  env = super().get_recipe_env(arch)
+                  env['SDL_CONFIG'] = join(
+                      self.get_recipe('sdl2', self.ctx).get_build_dir(arch.arch),
+                      'build', 'sdl2-config'
+                  )
+                  return env
+
+          recipe = PygameCERecipe()
+          EOF
+
       - name: Clean all caches
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
-          pip uninstall pygame pygame_ce -y 2>/dev/null || true
 
       - name: Install Buildozer and dependencies
         run: |
           pip install --upgrade pip setuptools wheel
           pip install "Cython==0.29.37"
-          pip install "sh==2.0.6"
-          pip install buildozer
+          pip install "sh==1.14.3"
+          pip install "buildozer==1.5.0"
           pip install appdirs colorama jinja2 packaging
 
       - name: Set Gradle memory
@@ -82,7 +107,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g"
           ANDROIDSDK: /usr/local/lib/android/sdk
-          ANDROIDNDK: /usr/local/lib/android/sdk/ndk/28.0.12674087
+          ANDROIDNDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "21"
         run: |
