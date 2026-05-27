@@ -62,9 +62,7 @@ jobs:
           mkdir -p p4a-recipes/pygame_ce
           cat > p4a-recipes/pygame_ce/__init__.py << 'EOF'
           from pythonforandroid.recipe import CppCompiledComponentsPythonRecipe
-          from pythonforandroid.toolchain import current_directory
           from os.path import join
-          import sh
 
           class PygameCERecipe(CppCompiledComponentsPythonRecipe):
               name = 'pygame_ce'
@@ -93,9 +91,13 @@ jobs:
         run: |
           pip install --upgrade pip setuptools wheel
           pip install "Cython==0.29.37"
+          pip install --user "Cython==0.29.37"
           pip install "sh==1.14.3"
           pip install "buildozer==1.5.0"
           pip install appdirs colorama jinja2 packaging
+          ln -sf $(which cython) /usr/local/bin/cython || true
+          echo "Cython path: $(which cython)"
+          cython --version
 
       - name: Set Gradle memory
         run: |
@@ -110,7 +112,9 @@ jobs:
           ANDROIDNDK: /usr/local/lib/android/sdk/ndk/25.2.9519653
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "21"
+          CYTHON: /opt/hostedtoolcache/Python/3.10.20/x64/bin/cython
         run: |
+          export PATH="/opt/hostedtoolcache/Python/3.10.20/x64/bin:$HOME/.local/bin:$PATH"
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
 
