@@ -6,7 +6,7 @@ import sys
 
 
 class PygameCERecipe(CythonRecipe):
-    version = '2.4.1'
+    version = '2.1.3'
     url = 'https://github.com/pygame-community/pygame-ce/archive/refs/tags/{version}.tar.gz'
     name = 'pygame_ce'
     depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
@@ -16,7 +16,7 @@ class PygameCERecipe(CythonRecipe):
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
 
-        # Вимикаємо ccache — він ламає cross-компіляцію
+        # Вимикаємо ccache
         env.pop('USE_CCACHE', None)
         env.pop('NDK_CCACHE', None)
         env['USE_CCACHE'] = '0'
@@ -38,11 +38,9 @@ class PygameCERecipe(CythonRecipe):
         env['SDL_CONFIG'] = fake_sdl2_config
         env['CFLAGS'] += f' -I{sdl2_include}'
 
-        # Додаємо системний cython у PATH
+        # Додаємо cython у PATH
         cython_dir = os.path.dirname(sys.executable)
         env['PATH'] = cython_dir + ':' + env.get('PATH', '')
-
-        # Вказуємо cython явно
         env['CYTHON'] = os.path.join(cython_dir, 'cython')
 
         return env
@@ -55,7 +53,13 @@ class PygameCERecipe(CythonRecipe):
         build_dir = self.get_build_dir(arch)
         print(f'Патчимо pygame_ce в {build_dir}')
 
+        # Видаляємо scrap файли
         for f in glob.glob(join(build_dir, 'src_c', 'scrap*.c')):
+            os.remove(f)
+            print(f'Видалено: {f}')
+
+        # Видаляємо camera файли (можуть падати на Android)
+        for f in glob.glob(join(build_dir, 'src_c', 'camera*.c')):
             os.remove(f)
             print(f'Видалено: {f}')
 
@@ -63,7 +67,11 @@ class PygameCERecipe(CythonRecipe):
         if os.path.exists(setup_py):
             with open(setup_py, 'r') as f:
                 content = f.read()
-            lines = [l for l in content.split('\n') if 'scrap' not in l.lower()]
+            lines = [
+                l for l in content.split('\n')
+                if 'scrap' not in l.lower()
+                and 'camera' not in l.lower()
+            ]
             with open(setup_py, 'w') as f:
                 f.write('\n'.join(lines))
             print('setup.py патч застосовано!')
