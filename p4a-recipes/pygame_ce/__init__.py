@@ -2,7 +2,6 @@ from pythonforandroid.recipe import CythonRecipe
 from os.path import join
 import os
 import glob
-import shutil
 
 
 class PygameCERecipe(CythonRecipe):
@@ -12,6 +11,13 @@ class PygameCERecipe(CythonRecipe):
     depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
     call_hostpython_via_targetpython = False
     install_in_hostpython = False
+
+    def prebuild_arch(self, arch):
+        super().prebuild_arch(arch)
+        # Встановлюємо Cython саме в hostpython
+        hostpython = self.ctx.hostpython
+        self.run_hostpython(hostpython, '-m', 'pip', 'install',
+                            'cython==0.29.37', '--user')
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
@@ -31,6 +37,14 @@ class PygameCERecipe(CythonRecipe):
 
         env['SDL_CONFIG'] = fake_sdl2_config
         env['CFLAGS'] += f' -I{sdl2_include}'
+
+        # Додаємо шлях до cython у hostpython
+        hostpython_dir = join(self.ctx.build_dir,
+                              'other_builds', 'hostpython3', 'desktop',
+                              'hostpython3', 'native-build', 'root',
+                              'usr', 'local', 'bin')
+        env['PATH'] = hostpython_dir + ':' + env.get('PATH', '')
+
         return env
 
     def prepare_build_dir(self, arch):
@@ -41,12 +55,10 @@ class PygameCERecipe(CythonRecipe):
         build_dir = self.get_build_dir(arch)
         print(f'Патчимо pygame_ce в {build_dir}')
 
-        # Видаляємо scrap файли
         for f in glob.glob(join(build_dir, 'src_c', 'scrap*.c')):
             os.remove(f)
             print(f'Видалено: {f}')
 
-        # Патчимо setup.py
         setup_py = join(build_dir, 'setup.py')
         if os.path.exists(setup_py):
             with open(setup_py, 'r') as f:
