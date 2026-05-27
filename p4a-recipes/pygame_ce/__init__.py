@@ -2,7 +2,6 @@ from pythonforandroid.recipe import CythonRecipe
 from os.path import join
 import os
 import glob
-import subprocess
 import sys
 
 
@@ -16,6 +15,12 @@ class PygameCERecipe(CythonRecipe):
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
+
+        # Вимикаємо ccache — він ламає cross-компіляцію
+        env.pop('USE_CCACHE', None)
+        env.pop('NDK_CCACHE', None)
+        env['USE_CCACHE'] = '0'
+
         sdl2_recipe = self.get_recipe('sdl2', self.ctx)
         sdl2_dir = sdl2_recipe.get_build_dir(arch.arch)
         sdl2_include = join(sdl2_dir, 'include')
