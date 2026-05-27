@@ -57,6 +57,12 @@ jobs:
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
             > $ANDROID_HOME/licenses/android-sdk-preview-license
 
+      - name: Disable ccache
+        run: |
+          sudo mv /usr/bin/ccache /usr/bin/ccache.bak
+          sudo bash -c 'printf "#!/bin/sh\nexec \"\$@\"\n" > /usr/bin/ccache'
+          sudo chmod +x /usr/bin/ccache
+
       - name: Clean all caches
         run: |
           rm -rf ~/.buildozer
@@ -88,8 +94,11 @@ jobs:
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "21"
           CYTHON: /opt/hostedtoolcache/Python/3.10.20/x64/bin/cython
+          USE_CCACHE: "0"
+          NDK_CCACHE: ""
         run: |
           export PATH="/opt/hostedtoolcache/Python/3.10.20/x64/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+          unset NDK_CCACHE
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
 
