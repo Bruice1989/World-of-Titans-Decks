@@ -70,10 +70,9 @@ jobs:
           pip install "sh==1.14.3"
           pip install "buildozer==1.5.0"
           pip install appdirs colorama jinja2 packaging
-          sudo ln -sf $(which cython) /usr/local/bin/cython
-          sudo ln -sf $(which cython) /usr/bin/cython
+          sudo ln -sf /opt/hostedtoolcache/Python/3.10.20/x64/bin/cython /usr/local/bin/cython
+          sudo ln -sf /opt/hostedtoolcache/Python/3.10.20/x64/bin/cython /usr/bin/cython
           cython --version
-          ls -la $(which cython)
 
       - name: Set Gradle memory
         run: |
