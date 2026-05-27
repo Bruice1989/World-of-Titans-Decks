@@ -1,9 +1,9 @@
 from pythonforandroid.recipe import CythonRecipe
-from pythonforandroid.toolchain import shprint
 from os.path import join
 import os
 import glob
-import sh
+import subprocess
+import sys
 
 
 class PygameCERecipe(CythonRecipe):
@@ -13,12 +13,6 @@ class PygameCERecipe(CythonRecipe):
     depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
     call_hostpython_via_targetpython = False
     install_in_hostpython = False
-
-    def prebuild_arch(self, arch):
-        super().prebuild_arch(arch)
-        hostpython = self.ctx.hostpython
-        shprint(sh.Command(hostpython), '-m', 'pip', 'install',
-                'cython==0.29.37', '--user')
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
@@ -39,13 +33,12 @@ class PygameCERecipe(CythonRecipe):
         env['SDL_CONFIG'] = fake_sdl2_config
         env['CFLAGS'] += f' -I{sdl2_include}'
 
-        hostpython_bin = join(
-            self.ctx.build_dir,
-            'other_builds', 'hostpython3', 'desktop',
-            'hostpython3', 'native-build', 'root',
-            'usr', 'local', 'bin'
-        )
-        env['PATH'] = hostpython_bin + ':' + env.get('PATH', '')
+        # Додаємо системний cython у PATH
+        cython_dir = os.path.dirname(sys.executable)
+        env['PATH'] = cython_dir + ':' + env.get('PATH', '')
+
+        # Вказуємо cython явно
+        env['CYTHON'] = os.path.join(cython_dir, 'cython')
 
         return env
 
