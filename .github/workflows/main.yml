@@ -57,35 +57,11 @@ jobs:
           printf "\n84831b9409646a918e30573bab4c9c91346d8abd" \
             > $ANDROID_HOME/licenses/android-sdk-preview-license
 
-      - name: Create pygame_ce recipe
-        run: |
-          mkdir -p p4a-recipes/pygame_ce
-          cat > p4a-recipes/pygame_ce/__init__.py << 'EOF'
-          from pythonforandroid.recipe import CppCompiledComponentsPythonRecipe
-          from os.path import join
-
-          class PygameCERecipe(CppCompiledComponentsPythonRecipe):
-              name = 'pygame_ce'
-              version = '2.5.3'
-              url = 'https://github.com/pygame-community/pygame-ce/archive/refs/tags/{version}.tar.gz'
-              depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
-              patches = []
-
-              def get_recipe_env(self, arch):
-                  env = super().get_recipe_env(arch)
-                  env['SDL_CONFIG'] = join(
-                      self.get_recipe('sdl2', self.ctx).get_build_dir(arch.arch),
-                      'build', 'sdl2-config'
-                  )
-                  return env
-
-          recipe = PygameCERecipe()
-          EOF
-
       - name: Clean all caches
         run: |
           rm -rf ~/.buildozer
           rm -rf .buildozer
+          rm -rf p4a-recipes
 
       - name: Install Buildozer and dependencies
         run: |
@@ -95,9 +71,54 @@ jobs:
           pip install "sh==1.14.3"
           pip install "buildozer==1.5.0"
           pip install appdirs colorama jinja2 packaging
-          ln -sf $(which cython) /usr/local/bin/cython || true
-          echo "Cython path: $(which cython)"
+          # Робимо cython доступним у всіх шляхах
+          sudo ln -sf $(which cython) /usr/local/bin/cython
+          sudo ln -sf $(which cython) /usr/bin/cython
           cython --version
+
+      - name: Clone p4a and patch pygame_ce recipe
+        run: |
+          git clone --depth=1 -b master https://github.com/kivy/python-for-android.git /tmp/p4a
+          # Перевіряємо чи є рецепт pygame_ce
+          ls /tmp/p4a/pythonforandroid/recipes/ | grep pygame || echo "pygame рецептів немає"
+          # Копіюємо рецепт якщо є
+          if [ -d /tmp/p4a/pythonforandroid/recipes/pygame_ce ]; then
+            echo "Рецепт pygame_ce знайдено в p4a"
+            mkdir -p p4a-recipes/pygame_ce
+            cp /tmp/p4a/pythonforandroid/recipes/pygame_ce/__init__.py p4a-recipes/pygame_ce/__init__.py
+          else
+            echo "Рецепт pygame_ce НЕ знайдено — створюємо вручну"
+            mkdir -p p4a-recipes/pygame_ce
+            cat > p4a-recipes/pygame_ce/__init__.py << 'RECIPE'
+from pythonforandroid.recipe import CppCompiledComponentsPythonRecipe
+from os.path import join
+import sh
+
+class PygameCERecipe(CppCompiledComponentsPythonRecipe):
+    name = 'pygame_ce'
+    version = '2.5.3'
+    url = 'https://github.com/pygame-community/pygame-ce/archive/refs/tags/{version}.tar.gz'
+    depends = ['sdl2', 'sdl2_image', 'sdl2_mixer', 'sdl2_ttf', 'python3']
+    patches = []
+
+    def prebuild_arch(self, arch):
+        super().prebuild_arch(arch)
+        hostpython = self.ctx.hostpython
+        sh.Command(hostpython)('-m', 'pip', 'install', 'cython==0.29.37', '--user')
+
+    def get_recipe_env(self, arch):
+        env = super().get_recipe_env(arch)
+        sdl2_build = join(
+            self.get_recipe('sdl2', self.ctx).get_build_dir(arch.arch),
+            'build'
+        )
+        env['SDL_CONFIG'] = join(sdl2_build, 'sdl2-config')
+        return env
+
+recipe = PygameCERecipe()
+RECIPE
+          fi
+          cat p4a-recipes/pygame_ce/__init__.py
 
       - name: Set Gradle memory
         run: |
@@ -114,7 +135,7 @@ jobs:
           ANDROIDMINAPI: "21"
           CYTHON: /opt/hostedtoolcache/Python/3.10.20/x64/bin/cython
         run: |
-          export PATH="/opt/hostedtoolcache/Python/3.10.20/x64/bin:$HOME/.local/bin:$PATH"
+          export PATH="/opt/hostedtoolcache/Python/3.10.20/x64/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
           mkdir -p logs
           buildozer -v android debug 2>&1 | tee logs/build.log
 
