@@ -38,6 +38,22 @@ import math
 def _get_app_dir():
     """Повертає папку де лежать файли гри (images, sounds, music)."""
     if hasattr(sys, 'getandroidapilevel'):
+        # На Android через python-for-android правильний шлях — папка main.py
+        # os.path.abspath('.') може повернути '/' або невірну директорію
+        try:
+            _p = os.path.dirname(os.path.abspath(__file__))
+            if os.path.isdir(_p):
+                return _p
+        except Exception:
+            pass
+        # Резервні варіанти для різних середовищ Android (Pygame, Kivy, etc.)
+        for _candidate in [
+            os.path.abspath('.'),
+            '/sdcard/ArenaGame',
+            os.path.join(os.path.expanduser('~'), 'ArenaGame'),
+        ]:
+            if os.path.isdir(os.path.join(_candidate, 'images')):
+                return _candidate
         return os.path.abspath('.')
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
@@ -45,6 +61,28 @@ def _get_app_dir():
 
 APP_DIR = _get_app_dir()
 os.chdir(APP_DIR)
+
+# ── ДЕБАГ: виводимо шлях у файл для діагностики (тільки якщо images не знайдено) ──
+def _debug_log(msg):
+    try:
+        _log_path = os.path.join(APP_DIR, "debug_path.txt")
+        with open(_log_path, "a", encoding="utf-8") as _lf:
+            _lf.write(msg + "\n")
+    except Exception:
+        pass
+
+_img_dir_exists = os.path.isdir(os.path.join(APP_DIR, "images"))
+_debug_log(f"APP_DIR={APP_DIR} | images_exists={_img_dir_exists} | cwd={os.getcwd()}")
+if not _img_dir_exists:
+    # Якщо папка images не знайдена — пробуємо знайти її поряд з __file__
+    try:
+        _alt = os.path.dirname(os.path.abspath(__file__))
+        if os.path.isdir(os.path.join(_alt, "images")):
+            APP_DIR = _alt
+            os.chdir(APP_DIR)
+            _debug_log(f"FIXED APP_DIR={APP_DIR}")
+    except Exception as _e:
+        _debug_log(f"fix failed: {_e}")
 
 def app_path(*parts):
     """Будує правильний шлях до файлу незалежно від платформи."""
@@ -1256,21 +1294,35 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
-    # Шукаємо в кількох підпапках: World, tabs, images корінь
-    _search_dirs = [
+    # Шукаємо в кількох підпапках та базових директоріях
+    _bases = [APP_DIR]
+    try:
+        _fb = os.path.dirname(os.path.abspath(__file__))
+        if _fb != APP_DIR:
+            _bases.append(_fb)
+    except Exception:
+        pass
+    _sub_dirs = [
         ("images", "World"),
         ("images", "tabs"),
         ("images",),
+        ("World",),
+        ("",),
     ]
-    for ext in [".png", ".jpg", ".jpeg"]:
-        for _d in _search_dirs:
-            path = app_path(*_d, filename + ext)
-            if os.path.exists(path):
-                try:
-                    img = pygame.image.load(path).convert_alpha()
-                    return pygame.transform.smoothscale(img, (width, height))
-                except:
-                    pass
+    for _base in _bases:
+        for _d in _sub_dirs:
+            for ext in [".png", ".jpg", ".jpeg", ".PNG", ".JPG"]:
+                if _d == ("",):
+                    path = os.path.join(_base, filename + ext)
+                else:
+                    path = os.path.join(_base, *_d, filename + ext)
+                if os.path.exists(path):
+                    try:
+                        img = pygame.image.load(path).convert_alpha()
+                        return pygame.transform.smoothscale(img, (width, height))
+                    except:
+                        pass
+    _debug_log(f"load_tab_image MISS: {filename} APP_DIR={APP_DIR}")
     return None
 
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
@@ -2641,24 +2693,39 @@ class Card:
         # Шукаємо спочатку за original_name, потім за відображуваним self.name
         # Це потрібно для карт магазину (Діамант. 100 → Алмазний Дракон тощо)
         names_to_try = list(dict.fromkeys([self.original_name, self.name]))
+        # Базові директорії: APP_DIR і директорія __file__ (на Android може різнитись)
+        _bases = [APP_DIR]
+        try:
+            _fb = os.path.dirname(os.path.abspath(__file__))
+            if _fb != APP_DIR:
+                _bases.append(_fb)
+        except Exception:
+            pass
         possible_paths = []
-        for _n in names_to_try:
-            possible_paths += [
-                app_path("images", f"{_n}.png"),
-                app_path("images", f"{_n}.jpg"),
-                app_path("images", "super_humans", f"{_n}.png"),
-                app_path("images", "super_humans", f"{_n}.jpg"),
-                app_path("images", "arch_cards", f"{_n}.png"),
-                app_path("images", "arch_cards", f"{_n}.jpg"),
-                app_path("images", "titans", f"{_n}.png"),
-                app_path("images", "titans", f"{_n}.jpg"),
-            ]
+        for _base in _bases:
+            for _n in names_to_try:
+                possible_paths += [
+                    os.path.join(_base, "images", f"{_n}.png"),
+                    os.path.join(_base, "images", f"{_n}.jpg"),
+                    os.path.join(_base, "images", "super_humans", f"{_n}.png"),
+                    os.path.join(_base, "images", "super_humans", f"{_n}.jpg"),
+                    os.path.join(_base, "images", "arch_cards", f"{_n}.png"),
+                    os.path.join(_base, "images", "arch_cards", f"{_n}.jpg"),
+                    os.path.join(_base, "images", "titans", f"{_n}.png"),
+                    os.path.join(_base, "images", "titans", f"{_n}.jpg"),
+                    os.path.join(_base, f"{_n}.png"),
+                    os.path.join(_base, f"{_n}.jpg"),
+                ]
         fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
         target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
             if os.path.exists(fallback):
                 target_path = fallback
             else:
+                # Логуємо невдачу один раз (перші 30 карт)
+                if not getattr(Card, "_img_miss_logged", False):
+                    Card._img_miss_logged = True
+                    _debug_log(f"img MISS ex: name={self.name} orig={self.original_name} tried={possible_paths[:3]}")
                 return None
         try:
             img = pygame.image.load(target_path).convert_alpha()
