@@ -62,31 +62,71 @@ def _get_app_dir():
 APP_DIR = _get_app_dir()
 os.chdir(APP_DIR)
 
-# ── ДЕБАГ: виводимо шлях у файл для діагностики (тільки якщо images не знайдено) ──
+# ============================================================
+# DIAGNOSTIC + AUTO-FIX: find images folder on ANY platform
+# ============================================================
+_DEBUG_LINES = []   # shown on screen; also written to file
+
 def _debug_log(msg):
+    _DEBUG_LINES.append(str(msg))
+    # Try writing to several writable locations
+    for _ldir in [APP_DIR, os.path.expanduser("~"),
+                  "/sdcard", "/sdcard/Download",
+                  os.path.join(os.path.expanduser("~"), "Documents")]:
+        try:
+            if not os.path.isdir(_ldir):
+                continue
+            with open(os.path.join(_ldir, "arena_debug.txt"), "a",
+                      encoding="utf-8") as _lf:
+                _lf.write(msg + "\n")
+            break
+        except Exception:
+            pass
+
+def _find_images_dir():
+    """Scan many candidate directories and return the one that has images/."""
+    global APP_DIR
+    candidates = []
+    # 1. current APP_DIR
+    candidates.append(APP_DIR)
+    # 2. directory of this script
     try:
-        _log_path = os.path.join(APP_DIR, "debug_path.txt")
-        with open(_log_path, "a", encoding="utf-8") as _lf:
-            _lf.write(msg + "\n")
+        candidates.append(os.path.dirname(os.path.abspath(__file__)))
     except Exception:
         pass
+    # 3. current working directory
+    candidates.append(os.path.abspath("."))
+    # 4. Android common locations
+    for _base in ["/sdcard", "/storage/emulated/0",
+                  os.path.expanduser("~")]:
+        for _sub in ["", "ArenaGame", "BruiceHeroes", "game",
+                     "Android/data", "Download"]:
+            candidates.append(os.path.join(_base, _sub))
+    # 5. Walk up from APP_DIR up to 4 levels
+    _cur = APP_DIR
+    for _ in range(4):
+        _cur = os.path.dirname(_cur)
+        candidates.append(_cur)
 
-_img_dir_exists = os.path.isdir(os.path.join(APP_DIR, "images"))
-_debug_log(f"APP_DIR={APP_DIR} | images_exists={_img_dir_exists} | cwd={os.getcwd()}")
-if not _img_dir_exists:
-    # Якщо папка images не знайдена — пробуємо знайти її поряд з __file__
-    try:
-        _alt = os.path.dirname(os.path.abspath(__file__))
-        if os.path.isdir(os.path.join(_alt, "images")):
-            APP_DIR = _alt
+    for _c in candidates:
+        if os.path.isdir(os.path.join(_c, "images")):
+            _debug_log(f"IMAGES FOUND at: {_c}")
+            APP_DIR = _c
             os.chdir(APP_DIR)
-            _debug_log(f"FIXED APP_DIR={APP_DIR}")
-    except Exception as _e:
-        _debug_log(f"fix failed: {_e}")
+            return True
+    _debug_log(f"IMAGES NOT FOUND. Searched: {candidates[:8]}")
+    return False
+
+_img_dir_ok = _find_images_dir()
+_debug_log(f"APP_DIR={APP_DIR} | images_ok={_img_dir_ok} | cwd={os.getcwd()}")
+try:
+    _debug_log(f"__file__={os.path.abspath(__file__)}")
+except Exception:
+    _debug_log("__file__ unavailable")
 
 def app_path(*parts):
     """Будує правильний шлях до файлу незалежно від платформи."""
-    return os.path.join(APP_DIR, *parts)
+    return os.path.join(APP_DIR, *parts)  # APP_DIR може змінюватись динамічно через _find_images_dir
 
 
 # --- ТУТ ПЕРЕЙМЕНОВУЙ СВОЇ КАРТИ ---
@@ -11380,6 +11420,9 @@ class Game:
 def main():
     global screen, _is_fullscreen
     game = Game()
+    game.show_debug = False
+    _debug_tap_count = 0
+    _debug_tap_last = 0
     clock = pygame.time.Clock()
     while True:
         game.draw(*screen.get_size())
@@ -11387,6 +11430,21 @@ def main():
             if event.type == pygame.QUIT:
                 game.save_game(); pygame.quit(); sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
+                # Тап 5 разів по верхньому краю екрана — пермикає DEBUG оверлей
+                import time as _ti
+                _ex, _ey = event.pos
+                _sw2, _sh2 = screen.get_size()
+                if _ey < _sh2 * 0.12:  # верхня зона 12%
+                    _now_t = _ti.time()
+                    if _now_t - _debug_tap_last < 1.5:
+                        _debug_tap_count += 1
+                    else:
+                        _debug_tap_count = 1
+                    _debug_tap_last = _now_t
+                    if _debug_tap_count >= 5:
+                        game.show_debug = not game.show_debug
+                        _debug_tap_count = 0
+                        _debug_log(f"DEBUG OVERLAY={'ON' if game.show_debug else 'OFF'}")
                 game.handle_click(event.pos)
             if event.type == pygame.KEYDOWN:
                 # Ввід IP для LAN
@@ -11754,6 +11812,17 @@ def main():
                 game._ach_show_t = 0
 
         game._check_pending_payments()
+
+        # ── DEBUG OVERLAY: показуємо шляхи прямо на екрані ──
+        if getattr(game, 'show_debug', False) and _DEBUG_LINES:
+            _dbg_font = pygame.font.SysFont("Monospace", 13)
+            _dy = 5
+            for _dl in _DEBUG_LINES[-20:]:
+                _ds = _dbg_font.render(_dl[:80], True, (255, 255, 0))
+                pygame.draw.rect(screen, (0, 0, 0), (_ds.get_rect(x=5, y=_dy).inflate(4, 2)))
+                screen.blit(_ds, (5, _dy))
+                _dy += 16
+
         pygame.display.flip(); clock.tick(60)
 
 if __name__ == "__main__":
