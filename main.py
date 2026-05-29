@@ -1256,14 +1256,21 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
+    # Шукаємо в кількох підпапках: World, tabs, images корінь
+    _search_dirs = [
+        ("images", "World"),
+        ("images", "tabs"),
+        ("images",),
+    ]
     for ext in [".png", ".jpg", ".jpeg"]:
-        path = app_path("images", "World", filename + ext)
-        if os.path.exists(path):
-            try:
-                img = pygame.image.load(path).convert_alpha()
-                return pygame.transform.smoothscale(img, (width, height))
-            except:
-                pass
+        for _d in _search_dirs:
+            path = app_path(*_d, filename + ext)
+            if os.path.exists(path):
+                try:
+                    img = pygame.image.load(path).convert_alpha()
+                    return pygame.transform.smoothscale(img, (width, height))
+                except:
+                    pass
     return None
 
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
@@ -2631,13 +2638,21 @@ class Card:
 
     def _load_unique_image(self):
         """Завантажує картинку карти через app_path (безпечно для Android)."""
-        possible_paths = [
-            app_path("images", f"{self.original_name}.png"),
-            app_path("images", f"{self.original_name}.jpg"),
-            app_path("images", "super_humans", f"{self.original_name}.png"),
-            app_path("images", "super_humans", f"{self.original_name}.jpg"),
-            app_path("images", "arch_cards", f"{self.original_name}.png"),
-        ]
+        # Шукаємо спочатку за original_name, потім за відображуваним self.name
+        # Це потрібно для карт магазину (Діамант. 100 → Алмазний Дракон тощо)
+        names_to_try = list(dict.fromkeys([self.original_name, self.name]))
+        possible_paths = []
+        for _n in names_to_try:
+            possible_paths += [
+                app_path("images", f"{_n}.png"),
+                app_path("images", f"{_n}.jpg"),
+                app_path("images", "super_humans", f"{_n}.png"),
+                app_path("images", "super_humans", f"{_n}.jpg"),
+                app_path("images", "arch_cards", f"{_n}.png"),
+                app_path("images", "arch_cards", f"{_n}.jpg"),
+                app_path("images", "titans", f"{_n}.png"),
+                app_path("images", "titans", f"{_n}.jpg"),
+            ]
         fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
         target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
