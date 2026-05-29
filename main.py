@@ -84,46 +84,67 @@ def _debug_log(msg):
             pass
 
 def _find_images_dir():
-    """Scan many candidate directories and return the one that has images/."""
-    global APP_DIR
+    """Scan filesystem to find the directory containing images/ folder."""
+    global APP_DIR, _DEBUG_LINES
     candidates = []
-    # 1. current APP_DIR
-    candidates.append(APP_DIR)
-    # 2. directory of this script
+    # Priority 1: next to main.py / __file__
     try:
         candidates.append(os.path.dirname(os.path.abspath(__file__)))
     except Exception:
         pass
-    # 3. current working directory
-    candidates.append(os.path.abspath("."))
-    # 4. Android common locations
-    for _base in ["/sdcard", "/storage/emulated/0",
+    # Priority 2: APP_DIR and cwd
+    candidates += [APP_DIR, os.path.abspath(".")]
+    # Priority 3: Android storage roots + common game folder names
+    for _root in ["/sdcard", "/storage/emulated/0",
+                  "/mnt/sdcard", "/storage/sdcard0",
                   os.path.expanduser("~")]:
-        for _sub in ["", "ArenaGame", "BruiceHeroes", "game",
-                     "Android/data", "Download"]:
-            candidates.append(os.path.join(_base, _sub))
-    # 5. Walk up from APP_DIR up to 4 levels
+        candidates.append(_root)
+        for _sub in ["", "ArenaGame", "BruiceHeroes", "game", "Game",
+                     "bruice", "heroes", "Download", "Documents",
+                     "Android/data"]:
+            candidates.append(os.path.join(_root, _sub))
+    # Priority 4: walk UP from each candidate (find if images is ancestor)
     _cur = APP_DIR
-    for _ in range(4):
+    for _ in range(6):
         _cur = os.path.dirname(_cur)
-        candidates.append(_cur)
+        if _cur and _cur != "/":
+            candidates.append(_cur)
 
+    # Priority 5: deep scan of /sdcard (max 2 levels) looking for images/
+    try:
+        for _root_sd in ["/sdcard", "/storage/emulated/0"]:
+            if os.path.isdir(_root_sd):
+                for _entry in os.listdir(_root_sd):
+                    _ep = os.path.join(_root_sd, _entry)
+                    if os.path.isdir(_ep):
+                        candidates.append(_ep)
+                        # one level deeper
+                        try:
+                            for _e2 in os.listdir(_ep):
+                                candidates.append(os.path.join(_ep, _e2))
+                        except Exception:
+                            pass
+    except Exception:
+        pass
+
+    _tried = []
     for _c in candidates:
+        if not _c or _c in _tried:
+            continue
+        _tried.append(_c)
         if os.path.isdir(os.path.join(_c, "images")):
-            _debug_log(f"IMAGES FOUND at: {_c}")
             APP_DIR = _c
-            os.chdir(APP_DIR)
+            try:
+                os.chdir(APP_DIR)
+            except Exception:
+                pass
+            _DEBUG_LINES.append(f"OK images at: {APP_DIR}")
             return True
-    _debug_log(f"IMAGES NOT FOUND. Searched: {candidates[:8]}")
+
+    _DEBUG_LINES.append(f"IMAGES NOT FOUND!")
+    _DEBUG_LINES.append(f"Searched {len(_tried)} dirs")
+    _DEBUG_LINES.append(f"Last 4: {_tried[-4:]}")
     return False
-
-_img_dir_ok = _find_images_dir()
-_debug_log(f"APP_DIR={APP_DIR} | images_ok={_img_dir_ok} | cwd={os.getcwd()}")
-try:
-    _debug_log(f"__file__={os.path.abspath(__file__)}")
-except Exception:
-    _debug_log("__file__ unavailable")
-
 def app_path(*parts):
     """Будує правильний шлях до файлу незалежно від платформи."""
     return os.path.join(APP_DIR, *parts)  # APP_DIR може змінюватись динамічно через _find_images_dir
@@ -6149,6 +6170,17 @@ class Game:
                 self.state = TOURNAMENT_STATE
             elif self.btn_evolution.collidepoint(pos) or _img_hit("btn_evolution"):
                 self.state = EVOLUTION; self.rune_msg = ""
+
+
+            # ── ДІАГНОСТИКА: показуємо шлях внизі екрана ──
+            _df = pygame.font.SysFont("Monospace", 11)
+            _diag_y = h - len(_DEBUG_LINES) * 14 - 4
+            for _dl in _DEBUG_LINES[-8:]:
+                _ds = _df.render(_dl[:72], True, (255, 255, 80))
+                pygame.draw.rect(screen, (0, 0, 0),
+                    (_ds.get_rect(x=4, y=_diag_y).inflate(2, 1)))
+                screen.blit(_ds, (4, _diag_y))
+                _diag_y += 14
 
         elif self.state == BATTLE_HUB:
             if self.btn_back.collidepoint(pos):
