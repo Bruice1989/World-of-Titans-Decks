@@ -34,6 +34,23 @@ import json
 import time
 import math
 
+# ── ANDROID: правильні шляхи до файлів ──────────────────────────────
+def _get_app_dir():
+    """Повертає папку де лежать файли гри (images, sounds, music)."""
+    if hasattr(sys, 'getandroidapilevel'):
+        return os.path.abspath('.')
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+APP_DIR = _get_app_dir()
+os.chdir(APP_DIR)
+
+def app_path(*parts):
+    """Будує правильний шлях до файлу незалежно від платформи."""
+    return os.path.join(APP_DIR, *parts)
+
+
 # --- ТУТ ПЕРЕЙМЕНОВУЙ СВОЇ КАРТИ ---
 RENAME_DICT = {
     # --- Герої ---
@@ -661,6 +678,11 @@ except Exception as _mixer_err:
     # Продовжуємо без звуку
 _info = pygame.display.Info()
 NATIVE_W, NATIVE_H = _info.current_w, _info.current_h
+# На Android завжди альбомна орієнтація (landscape)
+if hasattr(sys, 'getandroidapilevel'):
+    # Примусово landscape: ширина > висота
+    if NATIVE_W < NATIVE_H:
+        NATIVE_W, NATIVE_H = NATIVE_H, NATIVE_W
 screen = pygame.display.set_mode((NATIVE_W, NATIVE_H), pygame.FULLSCREEN | pygame.NOFRAME)
 pygame.display.set_caption("Bruice Heroes: Tactical Battle System")
 _is_fullscreen = True
@@ -668,7 +690,7 @@ _is_fullscreen = True
 # --- ЗВУКИ ТА МУЗИКА ---
 def load_sound(filename):
     for ext in [".wav", ".ogg", ".mp3"]:
-        path = os.path.join("sounds", filename + ext)
+        path = app_path("sounds", filename + ext)
         if os.path.exists(path):
             try: return pygame.mixer.Sound(path)
             except: pass
@@ -677,7 +699,7 @@ def load_sound(filename):
 def start_music():
     for ext in [".mp3", ".ogg", ".wav"]:
         for name in ["battle", "music", "theme", "background", "main"]:
-            path = os.path.join("music", name + ext)
+            path = app_path("music", name + ext)
             if os.path.exists(path):
                 try:
                     pygame.mixer.music.load(path)
@@ -686,11 +708,12 @@ def start_music():
                     return
                 except: pass
     # Якщо нічого не знайдено — пробуємо будь-який файл у папці music
-    if os.path.exists("music"):
-        for fname in os.listdir("music"):
+    music_dir = app_path("music")
+    if os.path.exists(music_dir):
+        for fname in os.listdir(music_dir):
             if fname.lower().endswith((".mp3", ".ogg", ".wav")):
                 try:
-                    pygame.mixer.music.load(os.path.join("music", fname))
+                    pygame.mixer.music.load(app_path("music", fname))
                     pygame.mixer.music.set_volume(0.5)
                     pygame.mixer.music.play(-1)
                     return
@@ -1236,7 +1259,7 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
     for ext in [".png", ".jpg", ".jpeg"]:
-        path = os.path.join("images", "World", filename + ext)
+        path = app_path("images", "World", filename + ext)
         if os.path.exists(path):
             try:
                 img = pygame.image.load(path).convert_alpha()
@@ -1248,7 +1271,7 @@ def load_tab_image(filename, width, height):
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
 def load_icon(filename, size=24):
     for ext in [".png", ".jpg", ".jpeg"]:
-        path = os.path.join("images", "Icon", filename + ext)
+        path = app_path("images", "Icon", filename + ext)
         if os.path.exists(path):
             try:
                 img = pygame.image.load(path).convert_alpha()
@@ -2609,22 +2632,16 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        unique_path = f"images/{self.original_name}.png"
-        fallback_hero = "images/hero_default.png"
-        fallback_monster = "images/monster_default.png"
         possible_paths = [
-            unique_path,
-            f"images/{self.original_name}.jpg",
-            f"images/super_humans/{self.original_name}.png",
-            f"images/super_humans/{self.original_name}.jpg",
+            app_path("images", f"{self.original_name}.png"),
+            app_path("images", f"{self.original_name}.jpg"),
+            app_path("images", "super_humans", f"{self.original_name}.png"),
+            app_path("images", "super_humans", f"{self.original_name}.jpg"),
         ]
-        target_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                target_path = path
-                break
+        fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
+        target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
-            target_path = fallback_monster if self.is_monster else fallback_hero
+            target_path = fallback
         try:
             img = pygame.image.load(target_path).convert_alpha()
             return pygame.transform.smoothscale(img, (90, 70))
@@ -4921,8 +4938,10 @@ class Game:
             "shard_shop_refresh": getattr(self, "shard_shop_refresh", 0),
             "shard_shop_bought":  getattr(self, "shard_shop_bought", []),
         }
-        # Для .exe (PyInstaller) — зберігати поруч з .exe, не в temp папці
-        if getattr(sys, 'frozen', False):
+        # Для Android / .exe / PC — правильний шлях збереження
+        if hasattr(sys, 'getandroidapilevel'):
+            _save_dir = APP_DIR
+        elif getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
@@ -4941,8 +4960,10 @@ class Game:
 
     def load_game(self):
         import pathlib
-        # Для .exe (PyInstaller) — читати поруч з .exe, не з temp папки
-        if getattr(sys, 'frozen', False):
+        # Для Android / .exe / PC — правильний шлях збереження
+        if hasattr(sys, 'getandroidapilevel'):
+            _save_dir = APP_DIR
+        elif getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11303,7 +11324,13 @@ def main():
                     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
                     _is_fullscreen = False
             if event.type == pygame.VIDEORESIZE:
-                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                # Android: при повороті не крашитись — тримати landscape
+                if hasattr(sys, 'getandroidapilevel'):
+                    new_w = max(event.w, event.h)
+                    new_h = min(event.w, event.h)
+                    screen = pygame.display.set_mode((new_w, new_h), pygame.FULLSCREEN | pygame.NOFRAME)
+                else:
+                    screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
         # Обробка зміни розміру через кнопки налаштувань
         if getattr(game, "pending_resolution", None):
             rw, rh = game.pending_resolution
