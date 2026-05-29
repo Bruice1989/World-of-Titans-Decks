@@ -38,22 +38,6 @@ import math
 def _get_app_dir():
     """Повертає папку де лежать файли гри (images, sounds, music)."""
     if hasattr(sys, 'getandroidapilevel'):
-        # На Android через python-for-android правильний шлях — папка main.py
-        # os.path.abspath('.') може повернути '/' або невірну директорію
-        try:
-            _p = os.path.dirname(os.path.abspath(__file__))
-            if os.path.isdir(_p):
-                return _p
-        except Exception:
-            pass
-        # Резервні варіанти для різних середовищ Android (Pygame, Kivy, etc.)
-        for _candidate in [
-            os.path.abspath('.'),
-            '/sdcard/ArenaGame',
-            os.path.join(os.path.expanduser('~'), 'ArenaGame'),
-        ]:
-            if os.path.isdir(os.path.join(_candidate, 'images')):
-                return _candidate
         return os.path.abspath('.')
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
@@ -62,92 +46,9 @@ def _get_app_dir():
 APP_DIR = _get_app_dir()
 os.chdir(APP_DIR)
 
-# ============================================================
-# DIAGNOSTIC + AUTO-FIX: find images folder on ANY platform
-# ============================================================
-_DEBUG_LINES = []   # shown on screen; also written to file
-
-def _debug_log(msg):
-    _DEBUG_LINES.append(str(msg))
-    # Try writing to several writable locations
-    for _ldir in [APP_DIR, os.path.expanduser("~"),
-                  "/sdcard", "/sdcard/Download",
-                  os.path.join(os.path.expanduser("~"), "Documents")]:
-        try:
-            if not os.path.isdir(_ldir):
-                continue
-            with open(os.path.join(_ldir, "arena_debug.txt"), "a",
-                      encoding="utf-8") as _lf:
-                _lf.write(msg + "\n")
-            break
-        except Exception:
-            pass
-
-def _find_images_dir():
-    """Scan filesystem to find the directory containing images/ folder."""
-    global APP_DIR, _DEBUG_LINES
-    candidates = []
-    # Priority 1: next to main.py / __file__
-    try:
-        candidates.append(os.path.dirname(os.path.abspath(__file__)))
-    except Exception:
-        pass
-    # Priority 2: APP_DIR and cwd
-    candidates += [APP_DIR, os.path.abspath(".")]
-    # Priority 3: Android storage roots + common game folder names
-    for _root in ["/sdcard", "/storage/emulated/0",
-                  "/mnt/sdcard", "/storage/sdcard0",
-                  os.path.expanduser("~")]:
-        candidates.append(_root)
-        for _sub in ["", "ArenaGame", "BruiceHeroes", "game", "Game",
-                     "bruice", "heroes", "Download", "Documents",
-                     "Android/data"]:
-            candidates.append(os.path.join(_root, _sub))
-    # Priority 4: walk UP from each candidate (find if images is ancestor)
-    _cur = APP_DIR
-    for _ in range(6):
-        _cur = os.path.dirname(_cur)
-        if _cur and _cur != "/":
-            candidates.append(_cur)
-
-    # Priority 5: deep scan of /sdcard (max 2 levels) looking for images/
-    try:
-        for _root_sd in ["/sdcard", "/storage/emulated/0"]:
-            if os.path.isdir(_root_sd):
-                for _entry in os.listdir(_root_sd):
-                    _ep = os.path.join(_root_sd, _entry)
-                    if os.path.isdir(_ep):
-                        candidates.append(_ep)
-                        # one level deeper
-                        try:
-                            for _e2 in os.listdir(_ep):
-                                candidates.append(os.path.join(_ep, _e2))
-                        except Exception:
-                            pass
-    except Exception:
-        pass
-
-    _tried = []
-    for _c in candidates:
-        if not _c or _c in _tried:
-            continue
-        _tried.append(_c)
-        if os.path.isdir(os.path.join(_c, "images")):
-            APP_DIR = _c
-            try:
-                os.chdir(APP_DIR)
-            except Exception:
-                pass
-            _DEBUG_LINES.append(f"OK images at: {APP_DIR}")
-            return True
-
-    _DEBUG_LINES.append(f"IMAGES NOT FOUND!")
-    _DEBUG_LINES.append(f"Searched {len(_tried)} dirs")
-    _DEBUG_LINES.append(f"Last 4: {_tried[-4:]}")
-    return False
 def app_path(*parts):
     """Будує правильний шлях до файлу незалежно від платформи."""
-    return os.path.join(APP_DIR, *parts)  # APP_DIR може змінюватись динамічно через _find_images_dir
+    return os.path.join(APP_DIR, *parts)
 
 
 # --- ТУТ ПЕРЕЙМЕНОВУЙ СВОЇ КАРТИ ---
@@ -1355,35 +1256,14 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
-    # Шукаємо в кількох підпапках та базових директоріях
-    _bases = [APP_DIR]
-    try:
-        _fb = os.path.dirname(os.path.abspath(__file__))
-        if _fb != APP_DIR:
-            _bases.append(_fb)
-    except Exception:
-        pass
-    _sub_dirs = [
-        ("images", "World"),
-        ("images", "tabs"),
-        ("images",),
-        ("World",),
-        ("",),
-    ]
-    for _base in _bases:
-        for _d in _sub_dirs:
-            for ext in [".png", ".jpg", ".jpeg", ".PNG", ".JPG"]:
-                if _d == ("",):
-                    path = os.path.join(_base, filename + ext)
-                else:
-                    path = os.path.join(_base, *_d, filename + ext)
-                if os.path.exists(path):
-                    try:
-                        img = pygame.image.load(path).convert_alpha()
-                        return pygame.transform.smoothscale(img, (width, height))
-                    except:
-                        pass
-    _debug_log(f"load_tab_image MISS: {filename} APP_DIR={APP_DIR}")
+    for ext in [".png", ".jpg", ".jpeg"]:
+        path = app_path("images", "World", filename + ext)
+        if os.path.exists(path):
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                return pygame.transform.smoothscale(img, (width, height))
+            except:
+                pass
     return None
 
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
@@ -2667,6 +2547,9 @@ CHESTS = [
 ]
 
 
+# ── Кеш зображень карт (уникаємо повторного завантаження з диска) ──
+_CARD_IMAGE_CACHE = {}  # {(original_name, is_monster): pygame.Surface | False}
+
 class Card:
     def __init__(self, name, level, is_monster=False):
         self.original_name = name
@@ -2750,48 +2633,46 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        """Завантажує картинку карти через app_path (безпечно для Android)."""
-        # Шукаємо спочатку за original_name, потім за відображуваним self.name
-        # Це потрібно для карт магазину (Діамант. 100 → Алмазний Дракон тощо)
-        names_to_try = list(dict.fromkeys([self.original_name, self.name]))
-        # Базові директорії: APP_DIR і директорія __file__ (на Android може різнитись)
-        _bases = [APP_DIR]
-        try:
-            _fb = os.path.dirname(os.path.abspath(__file__))
-            if _fb != APP_DIR:
-                _bases.append(_fb)
-        except Exception:
-            pass
-        possible_paths = []
-        for _base in _bases:
-            for _n in names_to_try:
-                possible_paths += [
-                    os.path.join(_base, "images", f"{_n}.png"),
-                    os.path.join(_base, "images", f"{_n}.jpg"),
-                    os.path.join(_base, "images", "super_humans", f"{_n}.png"),
-                    os.path.join(_base, "images", "super_humans", f"{_n}.jpg"),
-                    os.path.join(_base, "images", "arch_cards", f"{_n}.png"),
-                    os.path.join(_base, "images", "arch_cards", f"{_n}.jpg"),
-                    os.path.join(_base, "images", "titans", f"{_n}.png"),
-                    os.path.join(_base, "images", "titans", f"{_n}.jpg"),
-                    os.path.join(_base, f"{_n}.png"),
-                    os.path.join(_base, f"{_n}.jpg"),
-                ]
+        """Завантажує картинку карти через app_path (безпечно для Android).
+        Шукає у всіх можливих папках і за оригінальним і перейменованим іменем.
+        Результат кешується щоб не читати диск кожен кадр.
+        """
+        cache_key = (self.original_name, self.is_monster)
+        if cache_key in _CARD_IMAGE_CACHE:
+            cached = _CARD_IMAGE_CACHE[cache_key]
+            return cached if cached is not False else None
+
+        names = list(dict.fromkeys([self.original_name, self.name]))  # без дублів, оригінал першим
+        folders = [
+            ("images",),
+            ("images", "super_humans"),
+            ("images", "arch_cards"),
+            ("images", "heroes"),
+            ("images", "monsters"),
+            ("images", "World"),
+        ]
+        exts = [".png", ".jpg", ".jpeg"]
+        possible_paths = [
+            app_path(*folder, f"{nm}{ext}")
+            for nm in names
+            for folder in folders
+            for ext in exts
+        ]
         fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
         target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
             if os.path.exists(fallback):
                 target_path = fallback
             else:
-                # Логуємо невдачу один раз (перші 30 карт)
-                if not getattr(Card, "_img_miss_logged", False):
-                    Card._img_miss_logged = True
-                    _debug_log(f"img MISS ex: name={self.name} orig={self.original_name} tried={possible_paths[:3]}")
+                _CARD_IMAGE_CACHE[cache_key] = False
                 return None
         try:
             img = pygame.image.load(target_path).convert_alpha()
-            return pygame.transform.smoothscale(img, (90, 70))
+            result = pygame.transform.smoothscale(img, (90, 70))
+            _CARD_IMAGE_CACHE[cache_key] = result
+            return result
         except:
+            _CARD_IMAGE_CACHE[cache_key] = False
             return None
 
     def _get_rank(self, L):
@@ -6171,17 +6052,6 @@ class Game:
             elif self.btn_evolution.collidepoint(pos) or _img_hit("btn_evolution"):
                 self.state = EVOLUTION; self.rune_msg = ""
 
-
-            # ── ДІАГНОСТИКА: показуємо шлях внизі екрана ──
-            _df = pygame.font.SysFont("Monospace", 11)
-            _diag_y = h - len(_DEBUG_LINES) * 14 - 4
-            for _dl in _DEBUG_LINES[-8:]:
-                _ds = _df.render(_dl[:72], True, (255, 255, 80))
-                pygame.draw.rect(screen, (0, 0, 0),
-                    (_ds.get_rect(x=4, y=_diag_y).inflate(2, 1)))
-                screen.blit(_ds, (4, _diag_y))
-                _diag_y += 14
-
         elif self.state == BATTLE_HUB:
             if self.btn_back.collidepoint(pos):
                 self.state = MENU
@@ -8008,9 +7878,19 @@ class Game:
                         screen.blit(img, (mx, _ry0))
                         self.mkt_rects[mstate+"_img"] = pygame.Rect(mx,_ry0,MKT_IMG_W,MKT_IMG_H)
                     else:
-                        _bg_c = (20,40,80) if "АЛМАЗИ" in mlabel else (80,60,10) if "ЗОЛОТО" in mlabel else (40,30,10) if "РУДУ" in mlabel else (60,10,80) if "ТИТАН" in mlabel else (0,60,40)
+                        _bg_c = ((20,40,80) if "АЛМАЗИ" in mlabel else
+                                 (80,60,10) if "ЗОЛОТО" in mlabel else
+                                 (40,30,10) if "РУДУ" in mlabel else
+                                 (60,10,80) if "ТИТАН" in mlabel else
+                                 (0,80,50)  if "ОСКОЛКИ ІІ" in mlabel else
+                                 (0,60,40))
                         pygame.draw.rect(screen, _bg_c, (mx,_ry0,MKT_IMG_W,MKT_IMG_H), border_radius=10)
-                        _sym_m = {"КАРТИ ЗА АЛМАЗИ":"💎","КАРТИ ЗА ЗОЛОТО":"🪙","КАРТИ ЗА РУДУ":"⛏️","ТИТАНИ":"⚔️","КАРТИ ЗА ОСКОЛКИ":"🧩"}.get(mlabel,"?")
+                        _sym_m = ({"КАРТИ ЗА АЛМАЗИ":"💎",
+                                   "КАРТИ ЗА ЗОЛОТО":"🪙",
+                                   "КАРТИ ЗА РУДУ":"⛏️",
+                                   "ТИТАНИ":"⚔️",
+                                   "КАРТИ ЗА ОСКОЛКИ ІІ":"😇",
+                                   "КАРТИ ЗА ОСКОЛКИ":"🧩"}.get(mlabel,"?"))
                         _sm = font_big.render(_sym_m, True, GOLD)
                         screen.blit(_sm, (mx+MKT_IMG_W//2-_sm.get_width()//2, _ry0+MKT_IMG_H//2-_sm.get_height()//2))
                     btn_r = self.draw_button(mlabel, mx, _ry0+MKT_IMG_H+6, MKT_BTN_W, MKT_BTN_H, (30,160,30))
@@ -11452,9 +11332,6 @@ class Game:
 def main():
     global screen, _is_fullscreen
     game = Game()
-    game.show_debug = False
-    _debug_tap_count = 0
-    _debug_tap_last = 0
     clock = pygame.time.Clock()
     while True:
         game.draw(*screen.get_size())
@@ -11462,21 +11339,6 @@ def main():
             if event.type == pygame.QUIT:
                 game.save_game(); pygame.quit(); sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # Тап 5 разів по верхньому краю екрана — пермикає DEBUG оверлей
-                import time as _ti
-                _ex, _ey = event.pos
-                _sw2, _sh2 = screen.get_size()
-                if _ey < _sh2 * 0.12:  # верхня зона 12%
-                    _now_t = _ti.time()
-                    if _now_t - _debug_tap_last < 1.5:
-                        _debug_tap_count += 1
-                    else:
-                        _debug_tap_count = 1
-                    _debug_tap_last = _now_t
-                    if _debug_tap_count >= 5:
-                        game.show_debug = not game.show_debug
-                        _debug_tap_count = 0
-                        _debug_log(f"DEBUG OVERLAY={'ON' if game.show_debug else 'OFF'}")
                 game.handle_click(event.pos)
             if event.type == pygame.KEYDOWN:
                 # Ввід IP для LAN
@@ -11844,17 +11706,6 @@ def main():
                 game._ach_show_t = 0
 
         game._check_pending_payments()
-
-        # ── DEBUG OVERLAY: показуємо шляхи прямо на екрані ──
-        if getattr(game, 'show_debug', False) and _DEBUG_LINES:
-            _dbg_font = pygame.font.SysFont("Monospace", 13)
-            _dy = 5
-            for _dl in _DEBUG_LINES[-20:]:
-                _ds = _dbg_font.render(_dl[:80], True, (255, 255, 0))
-                pygame.draw.rect(screen, (0, 0, 0), (_ds.get_rect(x=5, y=_dy).inflate(4, 2)))
-                screen.blit(_ds, (5, _dy))
-                _dy += 16
-
         pygame.display.flip(); clock.tick(60)
 
 if __name__ == "__main__":
