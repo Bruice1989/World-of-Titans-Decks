@@ -2566,7 +2566,7 @@ class Card:
         self.selected = False
         self.offset_y = 0
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.image = self._load_unique_image()
+        self.image = None  # завантажується при першому draw()
 
     def _update_stats(self):
         if getattr(self,'evo_tier',0) == 2 and self.level > DIVINE_MAX_LEVEL:
@@ -2630,16 +2630,21 @@ class Card:
         return False
 
     def _load_unique_image(self):
+        """Завантажує картинку карти через app_path (безпечно для Android)."""
         possible_paths = [
             app_path("images", f"{self.original_name}.png"),
             app_path("images", f"{self.original_name}.jpg"),
             app_path("images", "super_humans", f"{self.original_name}.png"),
             app_path("images", "super_humans", f"{self.original_name}.jpg"),
+            app_path("images", "arch_cards", f"{self.original_name}.png"),
         ]
         fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
         target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
-            target_path = fallback
+            if os.path.exists(fallback):
+                target_path = fallback
+            else:
+                return None
         try:
             img = pygame.image.load(target_path).convert_alpha()
             return pygame.transform.smoothscale(img, (90, 70))
@@ -2692,6 +2697,9 @@ class Card:
             _shine_surf.fill((255, 220, 0, int(18 * _shimmer)))
             surface.blit(_shine_surf, (x + 2, rect_y + 2))
 
+        # Lazy load: завантажуємо при першому малюванні (Android-safe)
+        if self.image is None:
+            self.image = self._load_unique_image()
         if self.image:
             img_w = int(w * 0.8)
             img_h = int(h * 0.4)
@@ -11322,7 +11330,6 @@ def main():
                     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
                     _is_fullscreen = False
             if event.type == pygame.VIDEORESIZE:
-                # Android: при повороті тримати landscape
                 if hasattr(sys, 'getandroidapilevel'):
                     new_w = max(event.w, event.h)
                     new_h = min(event.w, event.h)
