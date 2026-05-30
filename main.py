@@ -1260,18 +1260,31 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def _load_image_safe(path, size=None):
-    """Завантажує зображення. Пробує convert_alpha і convert для сумісності."""
+    """Завантажує зображення. Обходить проблему кирилиці/пробілів на Android."""
+    import io
+    img = None
+    # Спосіб 1: через open()+BytesIO — обходить кодування імені файлу на Android
     try:
-        img = pygame.image.load(path)
-        try:
-            img = img.convert_alpha()
-        except Exception:
-            img = img.convert()
-        if size:
-            img = pygame.transform.smoothscale(img, size)
-        return img
+        with open(path, 'rb') as f:
+            img = pygame.image.load(io.BytesIO(f.read()))
     except Exception:
-        return None
+        pass
+    # Спосіб 2: прямо через pygame (для відносних шляхів у APK assets)
+    if img is None:
+        try:
+            img = pygame.image.load(path)
+        except Exception:
+            return None
+    try:
+        img = img.convert_alpha()
+    except Exception:
+        try:
+            img = img.convert()
+        except Exception:
+            pass
+    if size:
+        img = pygame.transform.smoothscale(img, size)
+    return img
 
 def _load_titan_image(tid, size):
     """Шукає картинку титана: спочатку png, потім gif."""
@@ -10128,12 +10141,10 @@ class Game:
                     _ess_ok = False
                     for _ep in [f"images/essences/{_ess['name']}.png",
                                 os.path.join(APP_DIR,"images","essences",f"{_ess['name']}.png")]:
-                        try:
-                            _ei_img = pygame.image.load(_ep).convert_alpha()
-                            _ei_img = pygame.transform.smoothscale(_ei_img,(_iw-4,_ih-4))
+                        _ei_img = _load_image_safe(_ep, (_iw-4, _ih-4))
+                        if _ei_img:
                             screen.blit(_ei_img,(_ex+(_EW-_iw)//2+2,_ey+7))
                             _ess_ok=True; break
-                        except Exception: pass
                     if not _ess_ok:
                         _sym = "💎"
                         _ss = font_bold.render(_sym,True,_ec)
