@@ -7254,13 +7254,14 @@ class Game:
                     ix2 = tt_x + 4; iy2 = tt_y + 20
                     t_drawn = False
                     for ext2 in [".gif", ".png", ".jpg"]:
-                        tp2 = app_path("images", "World", self.titan_id + ext2)
-                        if os.path.exists(tp2):
+                        for tp2 in [f"images/World/{self.titan_id}{ext2}",
+                                    app_path("images","World",self.titan_id+ext2)]:
                             try:
                                 ti2 = pygame.image.load(tp2).convert_alpha()
                                 ti2 = pygame.transform.smoothscale(ti2, (ia_w, ia_h))
                                 screen.blit(ti2, (ix2, iy2)); t_drawn = True; break
-                            except: pass
+                            except Exception: pass
+                        if t_drawn: break
                     if not t_drawn:
                         pygame.draw.rect(screen, tcol_m, (ix2, iy2, ia_w, ia_h), border_radius=8)
                         ph_m = font_bold.render(tname_m[0], True, WHITE)
@@ -8281,13 +8282,13 @@ class Game:
             gif_path = app_path("images", "World", self.titan_id + ".gif")
             png_path = app_path("images", "World", self.titan_id + ".png")
             drawn = False
-            for p in [gif_path, png_path]:
-                if os.path.exists(p):
-                    try:
-                        img = pygame.image.load(p).convert_alpha()
-                        img = pygame.transform.smoothscale(img, (TW, TH))
-                        screen.blit(img, (tx, ty)); drawn = True; break
-                    except: pass
+            for p in [f"images/World/{self.titan_id}.gif", f"images/World/{self.titan_id}.png",
+                       gif_path, png_path]:
+                try:
+                    img = pygame.image.load(p).convert_alpha()
+                    img = pygame.transform.smoothscale(img, (TW, TH))
+                    screen.blit(img, (tx, ty)); drawn = True; break
+                except Exception: pass
             if not drawn:
                 pygame.draw.rect(screen, tcol, (tx, ty, TW, TH), border_radius=16)
                 pygame.draw.rect(screen, WHITE, (tx, ty, TW, TH), 3, border_radius=16)
@@ -8370,13 +8371,13 @@ class Game:
                 # Картинка
                 drawn2 = False
                 for ext in [".gif",".png",".jpg"]:
-                    p2 = app_path("images", "World", tid+ext)
-                    if os.path.exists(p2):
+                    for p2 in [f"images/World/{tid}{ext}", app_path("images","World",tid+ext)]:
                         try:
                             img2 = pygame.image.load(p2).convert_alpha()
                             img2 = pygame.transform.smoothscale(img2, (TIW-4, TIH-50))
                             screen.blit(img2, (cx2+2, cy2+2)); drawn2=True; break
-                        except: pass
+                        except Exception: pass
+                    if drawn2: break
                 if not drawn2:
                     pygame.draw.rect(screen, tcol, (cx2+2, cy2+2, TIW-4, TIH-50), border_radius=8)
                     ph2 = font_small.render(tname[:8], True, WHITE)
@@ -8458,13 +8459,13 @@ class Game:
                 pygame.draw.rect(screen, tcol, (cx3, cy3, TIW2, TIH2), 2, border_radius=10)
                 drawn3 = False
                 for ext3 in [".gif",".png",".jpg"]:
-                    p3 = app_path("images", "World", tid+ext3)
-                    if os.path.exists(p3):
+                    for p3 in [f"images/World/{tid}{ext3}", app_path("images","World",tid+ext3)]:
                         try:
                             img3 = pygame.image.load(p3).convert_alpha()
                             img3 = pygame.transform.smoothscale(img3, (TIW2-4, TIH2-60))
                             screen.blit(img3, (cx3+2, cy3+2)); drawn3=True; break
-                        except: pass
+                        except Exception: pass
+                    if drawn3: break
                 if not drawn3:
                     pygame.draw.rect(screen, tcol, (cx3+2, cy3+2, TIW2-4, TIH2-60), border_radius=8)
                 ns3 = font_small.render(tname, True, tcol)
@@ -8501,13 +8502,13 @@ class Game:
                 pygame.draw.rect(screen, RED, (cx4, cy4, TIW3, TIH3), 2, border_radius=10)
                 drawn4 = False
                 for ext4 in [".gif",".png",".jpg"]:
-                    p4 = app_path("images", "World", tid+ext4)
-                    if os.path.exists(p4):
+                    for p4 in [f"images/World/{tid}{ext4}", app_path("images","World",tid+ext4)]:
                         try:
                             img4 = pygame.image.load(p4).convert_alpha()
                             img4 = pygame.transform.smoothscale(img4, (TIW3-4, TIH3-55))
                             screen.blit(img4, (cx4+2, cy4+2)); drawn4=True; break
-                        except: pass
+                        except Exception: pass
+                    if drawn4: break
                 if not drawn4:
                     pygame.draw.rect(screen, (80,20,20), (cx4+2, cy4+2, TIW3-4, TIH3-55), border_radius=8)
                 ns4 = font_small.render(tname, True, RED)
