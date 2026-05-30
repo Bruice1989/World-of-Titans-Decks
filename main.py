@@ -1260,18 +1260,28 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def _load_image_safe(path, size=None):
-    """Завантажує зображення, підтримує gif (без alpha) і png/jpg (з alpha)."""
+    """Завантажує зображення. Пробує convert_alpha і convert для сумісності."""
     try:
         img = pygame.image.load(path)
-        if path.lower().endswith('.gif'):
-            img = img.convert()
-        else:
+        try:
             img = img.convert_alpha()
+        except Exception:
+            img = img.convert()
         if size:
             img = pygame.transform.smoothscale(img, size)
         return img
     except Exception:
         return None
+
+def _load_titan_image(tid, size):
+    """Шукає картинку титана: спочатку png, потім gif."""
+    for ext in [".png", ".jpg", ".gif"]:
+        for p in [f"images/World/{tid}{ext}",
+                  app_path("images", "World", tid + ext)]:
+            img = _load_image_safe(p, size)
+            if img:
+                return img
+    return None
 
 def load_tab_image(filename, width, height):
     _aliases = {
@@ -2662,28 +2672,24 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        """Завантажує картинку карти. Без os.path.exists — працює на p4a/Android APK."""
+        """Завантажує картинку карти. Використовує _load_image_safe для Android/p4a."""
         # Шукаємо за original_name і за display name (через RENAME_DICT)
         names = list(dict.fromkeys([self.original_name, self.name]))
         subs = ["images", "images/super_humans", "images/arch_cards", "images/titans"]
         for _n in names:
             for _sub in subs:
-                for _ext in [".png", ".jpg"]:
+                for _ext in [".png", ".jpg", ".gif"]:
                     for _p in [f"{_sub}/{_n}{_ext}",
                                os.path.join(APP_DIR, _sub, f"{_n}{_ext}")]:
-                        try:
-                            img = pygame.image.load(_p).convert_alpha()
-                            return pygame.transform.smoothscale(img, (90, 70))
-                        except Exception:
-                            pass
+                        img = _load_image_safe(_p, (90, 70))
+                        if img:
+                            return img
         # Fallback
         _fb = "monster_default" if self.is_monster else "hero_default"
         for _p in [f"images/{_fb}.png", os.path.join(APP_DIR, "images", f"{_fb}.png")]:
-            try:
-                return pygame.transform.smoothscale(
-                    pygame.image.load(_p).convert_alpha(), (90, 70))
-            except Exception:
-                pass
+            img = _load_image_safe(_p, (90, 70))
+            if img:
+                return img
         return None
 
     def _get_rank(self, L):
@@ -2733,8 +2739,11 @@ class Card:
             surface.blit(_shine_surf, (x + 2, rect_y + 2))
 
         # Lazy load: завантажуємо при першому малюванні (Android-safe)
-        if self.image is None:
+        # _img_tried=True означає що вже пробували і не знайшли — не пробуємо знову
+        if self.image is None and not getattr(self, '_img_tried', False):
             self.image = self._load_unique_image()
+            if self.image is None:
+                self._img_tried = True
         if self.image:
             img_w = int(w * 0.8)
             img_h = int(h * 0.4)
@@ -7280,13 +7289,9 @@ class Game:
                     ia_h = IMG_H; ia_w = TT_W - 8
                     ix2 = tt_x + 4; iy2 = tt_y + 20
                     t_drawn = False
-                    for ext2 in [".gif", ".png", ".jpg"]:
-                        for tp2 in [f"images/World/{self.titan_id}{ext2}",
-                                    app_path("images","World",self.titan_id+ext2)]:
-                            ti2 = _load_image_safe(tp2, (ia_w, ia_h))
-                            if ti2:
-                                screen.blit(ti2, (ix2, iy2)); t_drawn = True; break
-                        if t_drawn: break
+                    ti2 = _load_titan_image(self.titan_id, (ia_w, ia_h))
+                    if ti2:
+                        screen.blit(ti2, (ix2, iy2)); t_drawn = True
                     if not t_drawn:
                         pygame.draw.rect(screen, tcol_m, (ix2, iy2, ia_w, ia_h), border_radius=8)
                         ph_m = font_bold.render(tname_m[0], True, WHITE)
@@ -8307,11 +8312,9 @@ class Game:
             gif_path = app_path("images", "World", self.titan_id + ".gif")
             png_path = app_path("images", "World", self.titan_id + ".png")
             drawn = False
-            for p in [f"images/World/{self.titan_id}.gif", f"images/World/{self.titan_id}.png",
-                       gif_path, png_path]:
-                img = _load_image_safe(p, (TW, TH))
-                if img:
-                    screen.blit(img, (tx, ty)); drawn = True; break
+            img = _load_titan_image(self.titan_id, (TW, TH))
+            if img:
+                screen.blit(img, (tx, ty)); drawn = True
             if not drawn:
                 pygame.draw.rect(screen, tcol, (tx, ty, TW, TH), border_radius=16)
                 pygame.draw.rect(screen, WHITE, (tx, ty, TW, TH), 3, border_radius=16)
@@ -8393,12 +8396,9 @@ class Game:
                 pygame.draw.rect(screen, border,     (cx2, cy2, TIW, TIH), 2, border_radius=10)
                 # Картинка
                 drawn2 = False
-                for ext in [".gif",".png",".jpg"]:
-                    for p2 in [f"images/World/{tid}{ext}", app_path("images","World",tid+ext)]:
-                        img2 = _load_image_safe(p2, (TIW-4, TIH-50))
-                        if img2:
-                            screen.blit(img2, (cx2+2, cy2+2)); drawn2=True; break
-                    if drawn2: break
+                img2 = _load_titan_image(tid, (TIW-4, TIH-50))
+                if img2:
+                    screen.blit(img2, (cx2+2, cy2+2)); drawn2=True
                 if not drawn2:
                     pygame.draw.rect(screen, tcol, (cx2+2, cy2+2, TIW-4, TIH-50), border_radius=8)
                     ph2 = font_small.render(tname[:8], True, WHITE)
@@ -8479,12 +8479,9 @@ class Game:
                 pygame.draw.rect(screen, (20,20,30), (cx3, cy3, TIW2, TIH2), border_radius=10)
                 pygame.draw.rect(screen, tcol, (cx3, cy3, TIW2, TIH2), 2, border_radius=10)
                 drawn3 = False
-                for ext3 in [".gif",".png",".jpg"]:
-                    for p3 in [f"images/World/{tid}{ext3}", app_path("images","World",tid+ext3)]:
-                        img3 = _load_image_safe(p3, (TIW2-4, TIH2-60))
-                        if img3:
-                            screen.blit(img3, (cx3+2, cy3+2)); drawn3=True; break
-                    if drawn3: break
+                img3 = _load_titan_image(tid, (TIW2-4, TIH2-60))
+                if img3:
+                    screen.blit(img3, (cx3+2, cy3+2)); drawn3=True
                 if not drawn3:
                     pygame.draw.rect(screen, tcol, (cx3+2, cy3+2, TIW2-4, TIH2-60), border_radius=8)
                 ns3 = font_small.render(tname, True, tcol)
@@ -8520,12 +8517,9 @@ class Game:
                 pygame.draw.rect(screen, (25,10,10), (cx4, cy4, TIW3, TIH3), border_radius=10)
                 pygame.draw.rect(screen, RED, (cx4, cy4, TIW3, TIH3), 2, border_radius=10)
                 drawn4 = False
-                for ext4 in [".gif",".png",".jpg"]:
-                    for p4 in [f"images/World/{tid}{ext4}", app_path("images","World",tid+ext4)]:
-                        img4 = _load_image_safe(p4, (TIW3-4, TIH3-55))
-                        if img4:
-                            screen.blit(img4, (cx4+2, cy4+2)); drawn4=True; break
-                    if drawn4: break
+                img4 = _load_titan_image(tid, (TIW3-4, TIH3-55))
+                if img4:
+                    screen.blit(img4, (cx4+2, cy4+2)); drawn4=True
                 if not drawn4:
                     pygame.draw.rect(screen, (80,20,20), (cx4+2, cy4+2, TIW3-4, TIH3-55), border_radius=8)
                 ns4 = font_small.render(tname, True, RED)
