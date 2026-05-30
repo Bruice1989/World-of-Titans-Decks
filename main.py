@@ -34,6 +34,27 @@ import json
 import time
 import math
 
+# ── ANDROID: правильні шляхи до файлів ──────────────────────────────
+def _get_app_dir():
+    """Повертає папку де лежать файли гри (images, sounds, music)."""
+    if hasattr(sys, 'getandroidapilevel'):
+        # p4a SDL2: main.py знаходиться в /data/data/<pkg>/files/app/
+        try:
+            return os.path.dirname(os.path.abspath(__file__))
+        except Exception:
+            return os.path.abspath('.')
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+APP_DIR = _get_app_dir()
+os.chdir(APP_DIR)
+
+def app_path(*parts):
+    """Будує правильний шлях до файлу незалежно від платформи."""
+    return os.path.join(APP_DIR, *parts)
+
+
 # --- ТУТ ПЕРЕЙМЕНОВУЙ СВОЇ КАРТИ ---
 RENAME_DICT = {
     # --- Герої ---
@@ -661,9 +682,10 @@ except Exception as _mixer_err:
     # Продовжуємо без звуку
 _info = pygame.display.Info()
 NATIVE_W, NATIVE_H = _info.current_w, _info.current_h
-# Android: примусово landscape
-if hasattr(sys, 'getandroidapilevel') and NATIVE_W < NATIVE_H:
-    NATIVE_W, NATIVE_H = NATIVE_H, NATIVE_W
+# На Android завжди альбомна орієнтація (landscape)
+if hasattr(sys, 'getandroidapilevel'):
+    if NATIVE_W < NATIVE_H:
+        NATIVE_W, NATIVE_H = NATIVE_H, NATIVE_W
 screen = pygame.display.set_mode((NATIVE_W, NATIVE_H), pygame.FULLSCREEN | pygame.NOFRAME)
 pygame.display.set_caption("Bruice Heroes: Tactical Battle System")
 _is_fullscreen = True
@@ -671,7 +693,7 @@ _is_fullscreen = True
 # --- ЗВУКИ ТА МУЗИКА ---
 def load_sound(filename):
     for ext in [".wav", ".ogg", ".mp3"]:
-        path = os.path.join("sounds", filename + ext)
+        path = app_path("sounds", filename + ext)
         if os.path.exists(path):
             try: return pygame.mixer.Sound(path)
             except: pass
@@ -680,7 +702,7 @@ def load_sound(filename):
 def start_music():
     for ext in [".mp3", ".ogg", ".wav"]:
         for name in ["battle", "music", "theme", "background", "main"]:
-            path = os.path.join("music", name + ext)
+            path = app_path("music", name + ext)
             if os.path.exists(path):
                 try:
                     pygame.mixer.music.load(path)
@@ -689,11 +711,11 @@ def start_music():
                     return
                 except: pass
     # Якщо нічого не знайдено — пробуємо будь-який файл у папці music
-    if os.path.exists("music"):
-        for fname in os.listdir("music"):
+    if os.path.exists(app_path("music")):
+        for fname in os.listdir(app_path("music")):
             if fname.lower().endswith((".mp3", ".ogg", ".wav")):
                 try:
-                    pygame.mixer.music.load(os.path.join("music", fname))
+                    pygame.mixer.music.load(app_path("music", fname))
                     pygame.mixer.music.set_volume(0.5)
                     pygame.mixer.music.play(-1)
                     return
@@ -1239,7 +1261,7 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
     for ext in [".png", ".jpg", ".jpeg"]:
-        path = os.path.join("images", "World", filename + ext)
+        path = app_path("images", "World", filename + ext)
         if os.path.exists(path):
             try:
                 img = pygame.image.load(path).convert_alpha()
@@ -1251,7 +1273,7 @@ def load_tab_image(filename, width, height):
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
 def load_icon(filename, size=24):
     for ext in [".png", ".jpg", ".jpeg"]:
-        path = os.path.join("images", "Icon", filename + ext)
+        path = app_path("images", "Icon", filename + ext)
         if os.path.exists(path):
             try:
                 img = pygame.image.load(path).convert_alpha()
@@ -2548,7 +2570,7 @@ class Card:
         self.selected = False
         self.offset_y = 0
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.image = None  # lazy: завантажується при першому draw()
+        self.image = None  # завантажується при першому draw()
 
     def _update_stats(self):
         if getattr(self,'evo_tier',0) == 2 and self.level > DIVINE_MAX_LEVEL:
@@ -2612,22 +2634,21 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        unique_path = f"images/{self.original_name}.png"
-        fallback_hero = "images/hero_default.png"
-        fallback_monster = "images/monster_default.png"
+        """Завантажує картинку карти через app_path (безпечно для Android)."""
         possible_paths = [
-            unique_path,
-            f"images/{self.original_name}.jpg",
-            f"images/super_humans/{self.original_name}.png",
-            f"images/super_humans/{self.original_name}.jpg",
+            app_path("images", f"{self.original_name}.png"),
+            app_path("images", f"{self.original_name}.jpg"),
+            app_path("images", "super_humans", f"{self.original_name}.png"),
+            app_path("images", "super_humans", f"{self.original_name}.jpg"),
+            app_path("images", "arch_cards", f"{self.original_name}.png"),
         ]
-        target_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                target_path = path
-                break
+        fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
+        target_path = next((p for p in possible_paths if os.path.exists(p)), None)
         if not target_path:
-            target_path = fallback_monster if self.is_monster else fallback_hero
+            if os.path.exists(fallback):
+                target_path = fallback
+            else:
+                return None
         try:
             img = pygame.image.load(target_path).convert_alpha()
             return pygame.transform.smoothscale(img, (90, 70))
@@ -2680,6 +2701,7 @@ class Card:
             _shine_surf.fill((255, 220, 0, int(18 * _shimmer)))
             surface.blit(_shine_surf, (x + 2, rect_y + 2))
 
+        # Lazy load: завантажуємо при першому малюванні (Android-safe)
         if self.image is None:
             self.image = self._load_unique_image()
         if self.image:
@@ -4926,8 +4948,10 @@ class Game:
             "shard_shop_refresh": getattr(self, "shard_shop_refresh", 0),
             "shard_shop_bought":  getattr(self, "shard_shop_bought", []),
         }
-        # Для .exe (PyInstaller) — зберігати поруч з .exe, не в temp папці
-        if getattr(sys, 'frozen', False):
+        # Android / .exe / PC — правильний шлях збереження
+        if hasattr(sys, 'getandroidapilevel'):
+            _save_dir = APP_DIR
+        elif getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
@@ -4946,8 +4970,10 @@ class Game:
 
     def load_game(self):
         import pathlib
-        # Для .exe (PyInstaller) — читати поруч з .exe, не з temp папки
-        if getattr(sys, 'frozen', False):
+        # Android / .exe / PC — правильний шлях завантаження
+        if hasattr(sys, 'getandroidapilevel'):
+            _save_dir = APP_DIR
+        elif getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
@@ -7224,7 +7250,7 @@ class Game:
                     ix2 = tt_x + 4; iy2 = tt_y + 20
                     t_drawn = False
                     for ext2 in [".gif", ".png", ".jpg"]:
-                        tp2 = os.path.join("images", "World", self.titan_id + ext2)
+                        tp2 = app_path("images", "World", self.titan_id + ext2)
                         if os.path.exists(tp2):
                             try:
                                 ti2 = pygame.image.load(tp2).convert_alpha()
@@ -7885,7 +7911,7 @@ class Game:
                         pygame.draw.rect(screen,(255,215,0),(_sx-_gt,_sy2-_gt,_CW_SH+_gt*2,_CH_SH+_gt*2),1,border_radius=14)
                 pygame.draw.rect(screen,(15,12,28),(_sx,_sy2,_CW_SH,_CH_SH),border_radius=12)
                 pygame.draw.rect(screen,_fc,(_sx,_sy2,_CW_SH,_CH_SH),3,border_radius=12)
-                _img_p=os.path.join("images","super_humans",f"{orig}.png")
+                _img_p=app_path("images","super_humans",f"{orig}.png")
                 if os.path.exists(_img_p):
                     try:
                         _im=pygame.image.load(_img_p).convert_alpha()
@@ -7989,7 +8015,7 @@ class Game:
                             (_ax-_gt, _ay-_gt, _CW_AR+_gt*2, _CH_AR+_gt*2), 1, border_radius=14)
                 pygame.draw.rect(screen, (20,10,30), (_ax, _ay, _CW_AR, _CH_AR), border_radius=12)
                 pygame.draw.rect(screen, _fc_a, (_ax, _ay, _CW_AR, _CH_AR), 3, border_radius=12)
-                _img_ar = os.path.join("images", "arch_cards", f"{orig_a}.png")
+                _img_ar = app_path("images", "arch_cards", f"{orig_a}.png")
                 if os.path.exists(_img_ar):
                     try:
                         _im_a = pygame.image.load(_img_ar).convert_alpha()
@@ -8247,8 +8273,8 @@ class Game:
             # GIF / статичний прямокутник Титана (2× ширше вкладки = 480, 3× вище = 360)
             TW, TH = 480, 360
             tx, ty = w//2 - TW//2, 65
-            gif_path = os.path.join("images", "World", self.titan_id + ".gif")
-            png_path = os.path.join("images", "World", self.titan_id + ".png")
+            gif_path = app_path("images", "World", self.titan_id + ".gif")
+            png_path = app_path("images", "World", self.titan_id + ".png")
             drawn = False
             for p in [gif_path, png_path]:
                 if os.path.exists(p):
@@ -8339,7 +8365,7 @@ class Game:
                 # Картинка
                 drawn2 = False
                 for ext in [".gif",".png",".jpg"]:
-                    p2 = os.path.join("images","World", tid+ext)
+                    p2 = app_path("images", "World", tid+ext)
                     if os.path.exists(p2):
                         try:
                             img2 = pygame.image.load(p2).convert_alpha()
@@ -8427,7 +8453,7 @@ class Game:
                 pygame.draw.rect(screen, tcol, (cx3, cy3, TIW2, TIH2), 2, border_radius=10)
                 drawn3 = False
                 for ext3 in [".gif",".png",".jpg"]:
-                    p3 = os.path.join("images","World", tid+ext3)
+                    p3 = app_path("images", "World", tid+ext3)
                     if os.path.exists(p3):
                         try:
                             img3 = pygame.image.load(p3).convert_alpha()
@@ -8470,7 +8496,7 @@ class Game:
                 pygame.draw.rect(screen, RED, (cx4, cy4, TIW3, TIH3), 2, border_radius=10)
                 drawn4 = False
                 for ext4 in [".gif",".png",".jpg"]:
-                    p4 = os.path.join("images","World", tid+ext4)
+                    p4 = app_path("images", "World", tid+ext4)
                     if os.path.exists(p4):
                         try:
                             img4 = pygame.image.load(p4).convert_alpha()
@@ -10082,7 +10108,7 @@ class Game:
                     pygame.draw.rect(screen,(30,20,50),_img_box,border_radius=8)
                     pygame.draw.rect(screen,_ec,_img_box,1,border_radius=8)
                     # Спробуємо завантажити картинку есенції
-                    _ess_img_path = os.path.join("images","essences",f"{_ess['name']}.png")
+                    _ess_img_path = app_path("images","essences",f"{_ess['name']}.png")
                     if os.path.exists(_ess_img_path):
                         try:
                             _ei_img = pygame.image.load(_ess_img_path).convert_alpha()
@@ -11309,9 +11335,9 @@ def main():
                     _is_fullscreen = False
             if event.type == pygame.VIDEORESIZE:
                 if hasattr(sys, 'getandroidapilevel'):
-                    _rw = max(event.w, event.h)
-                    _rh = min(event.w, event.h)
-                    screen = pygame.display.set_mode((_rw, _rh), pygame.FULLSCREEN | pygame.NOFRAME)
+                    new_w = max(event.w, event.h)
+                    new_h = min(event.w, event.h)
+                    screen = pygame.display.set_mode((new_w, new_h), pygame.FULLSCREEN | pygame.NOFRAME)
                 else:
                     screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
         # Обробка зміни розміру через кнопки налаштувань
