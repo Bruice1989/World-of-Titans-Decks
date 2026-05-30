@@ -4,6 +4,7 @@ package.name = worldtitans
 package.domain = org.bruice
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,ttf,json,wav,mp3,ogg
+source.include_patterns = images/*.png,images/*.jpg,images/*.jpeg,images/Icon/*.png,images/Icon/*.jpg,images/Icon/*.jpeg,images/essences/*.png,images/essences/*.jpg,images/World/*.png,images/World/*.jpg,images/super_humans/*.png,images/super_humans/*.jpg,images/arch_cards/*.png,images/arch_cards/*.jpg,images/titans/*.png,images/titans/*.jpg,images/tabs/*.png,images/tabs/*.jpg,music/*.mp3,music/*.ogg,music/*.wav,sounds/*.wav,sounds/*.ogg,sounds/*.mp3
 source.exclude_dirs = dist,__pycache__,.buildozer,build,p4a-recipes
 source.main = main.py
 version = 0.2
