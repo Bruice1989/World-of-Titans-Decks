@@ -1260,25 +1260,26 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def load_tab_image(filename, width, height):
-    for ext in [".png", ".jpg", ".jpeg"]:
-        path = app_path("images", "World", filename + ext)
-        if os.path.exists(path):
-            try:
-                img = pygame.image.load(path).convert_alpha()
-                return pygame.transform.smoothscale(img, (width, height))
-            except:
-                pass
+    for _sub in ["images/World", "images/tabs", "images"]:
+        for _ext in [".png", ".jpg", ".jpeg"]:
+            for _p in [f"{_sub}/{filename}{_ext}",
+                       os.path.join(APP_DIR, _sub, filename + _ext)]:
+                try:
+                    img = pygame.image.load(_p).convert_alpha()
+                    return pygame.transform.smoothscale(img, (width, height))
+                except Exception:
+                    pass
     return None
 
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
 def load_icon(filename, size=24):
-    for ext in [".png", ".jpg", ".jpeg"]:
-        path = app_path("images", "Icon", filename + ext)
-        if os.path.exists(path):
+    for _ext in [".png", ".jpg", ".jpeg"]:
+        for _p in [f"images/Icon/{filename}{_ext}",
+                   os.path.join(APP_DIR, "images", "Icon", filename + _ext)]:
             try:
-                img = pygame.image.load(path).convert_alpha()
+                img = pygame.image.load(_p).convert_alpha()
                 return pygame.transform.smoothscale(img, (size, size))
-            except:
+            except Exception:
                 pass
     return None
 
@@ -2634,26 +2635,29 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        """Завантажує картинку карти через app_path (безпечно для Android)."""
-        possible_paths = [
-            app_path("images", f"{self.original_name}.png"),
-            app_path("images", f"{self.original_name}.jpg"),
-            app_path("images", "super_humans", f"{self.original_name}.png"),
-            app_path("images", "super_humans", f"{self.original_name}.jpg"),
-            app_path("images", "arch_cards", f"{self.original_name}.png"),
-        ]
-        fallback = app_path("images", "monster_default.png" if self.is_monster else "hero_default.png")
-        target_path = next((p for p in possible_paths if os.path.exists(p)), None)
-        if not target_path:
-            if os.path.exists(fallback):
-                target_path = fallback
-            else:
-                return None
-        try:
-            img = pygame.image.load(target_path).convert_alpha()
-            return pygame.transform.smoothscale(img, (90, 70))
-        except:
-            return None
+        """Завантажує картинку карти. Без os.path.exists — працює на p4a/Android APK."""
+        # Шукаємо за original_name і за display name (через RENAME_DICT)
+        names = list(dict.fromkeys([self.original_name, self.name]))
+        subs = ["images", "images/super_humans", "images/arch_cards", "images/titans"]
+        for _n in names:
+            for _sub in subs:
+                for _ext in [".png", ".jpg"]:
+                    for _p in [f"{_sub}/{_n}{_ext}",
+                               os.path.join(APP_DIR, _sub, f"{_n}{_ext}")]:
+                        try:
+                            img = pygame.image.load(_p).convert_alpha()
+                            return pygame.transform.smoothscale(img, (90, 70))
+                        except Exception:
+                            pass
+        # Fallback
+        _fb = "monster_default" if self.is_monster else "hero_default"
+        for _p in [f"images/{_fb}.png", os.path.join(APP_DIR, "images", f"{_fb}.png")]:
+            try:
+                return pygame.transform.smoothscale(
+                    pygame.image.load(_p).convert_alpha(), (90, 70))
+            except Exception:
+                pass
+        return None
 
     def _get_rank(self, L):
         if L > DIVINE_MAX_LEVEL: return "ВЕРХОВНИЙ"
@@ -7911,14 +7915,15 @@ class Game:
                         pygame.draw.rect(screen,(255,215,0),(_sx-_gt,_sy2-_gt,_CW_SH+_gt*2,_CH_SH+_gt*2),1,border_radius=14)
                 pygame.draw.rect(screen,(15,12,28),(_sx,_sy2,_CW_SH,_CH_SH),border_radius=12)
                 pygame.draw.rect(screen,_fc,(_sx,_sy2,_CW_SH,_CH_SH),3,border_radius=12)
-                _img_p=app_path("images","super_humans",f"{orig}.png")
-                if os.path.exists(_img_p):
+                _im_ok = False
+                for _shp in [f"images/super_humans/{orig}.png",
+                             os.path.join(APP_DIR,"images","super_humans",f"{orig}.png")]:
                     try:
-                        _im=pygame.image.load(_img_p).convert_alpha()
+                        _im=pygame.image.load(_shp).convert_alpha()
                         screen.blit(pygame.transform.smoothscale(_im,(_CW_SH-8,130)),(_sx+4,_sy2+4))
-                    except:
-                        _ph=font_big.render("🦸",True,(80,255,180)); screen.blit(_ph,(_sx+_CW_SH//2-_ph.get_width()//2,_sy2+46))
-                else:
+                        _im_ok=True; break
+                    except Exception: pass
+                if not _im_ok:
                     pygame.draw.rect(screen,(20,40,30),(_sx+4,_sy2+4,_CW_SH-8,130),border_radius=8)
                     _ph=font_big.render("🦸",True,(80,255,180)); screen.blit(_ph,(_sx+_CW_SH//2-_ph.get_width()//2,_sy2+46))
                 screen.blit(font_bold.render(name[:17],True,(80,255,180) if _is_unl else WHITE),(_sx+_CW_SH//2-font_bold.size(name[:17])[0]//2,_sy2+138))
@@ -8015,15 +8020,15 @@ class Game:
                             (_ax-_gt, _ay-_gt, _CW_AR+_gt*2, _CH_AR+_gt*2), 1, border_radius=14)
                 pygame.draw.rect(screen, (20,10,30), (_ax, _ay, _CW_AR, _CH_AR), border_radius=12)
                 pygame.draw.rect(screen, _fc_a, (_ax, _ay, _CW_AR, _CH_AR), 3, border_radius=12)
-                _img_ar = app_path("images", "arch_cards", f"{orig_a}.png")
-                if os.path.exists(_img_ar):
+                _im_a_ok = False
+                for _arp in [f"images/arch_cards/{orig_a}.png",
+                             os.path.join(APP_DIR,"images","arch_cards",f"{orig_a}.png")]:
                     try:
-                        _im_a = pygame.image.load(_img_ar).convert_alpha()
+                        _im_a = pygame.image.load(_arp).convert_alpha()
                         screen.blit(pygame.transform.smoothscale(_im_a, (_CW_AR-8, 130)), (_ax+4, _ay+4))
-                    except:
-                        _ph_a = font_big.render("😇", True, (255,180,80))
-                        screen.blit(_ph_a, (_ax+_CW_AR//2-_ph_a.get_width()//2, _ay+46))
-                else:
+                        _im_a_ok=True; break
+                    except Exception: pass
+                if not _im_a_ok:
                     pygame.draw.rect(screen, (35,20,10), (_ax+4, _ay+4, _CW_AR-8, 130), border_radius=8)
                     _ph_a = font_big.render("😇" if "Angel" in orig_a or "AR_G" in orig_a or "AR_M" in orig_a
                                             else "👿", True, (255,180,80))
@@ -10108,14 +10113,16 @@ class Game:
                     pygame.draw.rect(screen,(30,20,50),_img_box,border_radius=8)
                     pygame.draw.rect(screen,_ec,_img_box,1,border_radius=8)
                     # Спробуємо завантажити картинку есенції
-                    _ess_img_path = app_path("images","essences",f"{_ess['name']}.png")
-                    if os.path.exists(_ess_img_path):
+                    _ess_ok = False
+                    for _ep in [f"images/essences/{_ess['name']}.png",
+                                os.path.join(APP_DIR,"images","essences",f"{_ess['name']}.png")]:
                         try:
-                            _ei_img = pygame.image.load(_ess_img_path).convert_alpha()
+                            _ei_img = pygame.image.load(_ep).convert_alpha()
                             _ei_img = pygame.transform.smoothscale(_ei_img,(_iw-4,_ih-4))
                             screen.blit(_ei_img,(_ex+(_EW-_iw)//2+2,_ey+7))
-                        except: pass
-                    else:
+                            _ess_ok=True; break
+                        except Exception: pass
+                    if not _ess_ok:
                         _sym = "💎"
                         _ss = font_bold.render(_sym,True,_ec)
                         screen.blit(_ss,(_ex+(_EW-_ss.get_width())//2,_ey+_ih//2-_ss.get_height()//2+5))
