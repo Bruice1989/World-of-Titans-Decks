@@ -34,24 +34,6 @@ import json
 import time
 import math
 
-# ── ANDROID: правильний робочий каталог ─────────────────────────────
-def _get_app_dir():
-    if hasattr(sys, 'getandroidapilevel'):
-        return os.path.abspath('.')
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
-
-APP_DIR = _get_app_dir()
-try:
-    os.chdir(APP_DIR)
-except Exception:
-    pass
-
-def app_path(*parts):
-    return os.path.join(APP_DIR, *parts)
-
-
 # --- ТУТ ПЕРЕЙМЕНОВУЙ СВОЇ КАРТИ ---
 RENAME_DICT = {
     # --- Герої ---
@@ -679,9 +661,9 @@ except Exception as _mixer_err:
     # Продовжуємо без звуку
 _info = pygame.display.Info()
 NATIVE_W, NATIVE_H = _info.current_w, _info.current_h
-if hasattr(sys, 'getandroidapilevel'):
-    if NATIVE_W < NATIVE_H:
-        NATIVE_W, NATIVE_H = NATIVE_H, NATIVE_W
+# Android: примусово landscape
+if hasattr(sys, 'getandroidapilevel') and NATIVE_W < NATIVE_H:
+    NATIVE_W, NATIVE_H = NATIVE_H, NATIVE_W
 screen = pygame.display.set_mode((NATIVE_W, NATIVE_H), pygame.FULLSCREEN | pygame.NOFRAME)
 pygame.display.set_caption("Bruice Heroes: Tactical Battle System")
 _is_fullscreen = True
@@ -2630,28 +2612,26 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        """Завантажує картинку картки.
-        Використовує відносні шляхи (як магазин осколків) — працює на Android
-        бо на момент виклику os.chdir вже виконано.
-        """
+        unique_path = f"images/{self.original_name}.png"
+        fallback_hero = "images/hero_default.png"
+        fallback_monster = "images/monster_default.png"
         possible_paths = [
-            os.path.join("images", f"{self.original_name}.png"),
-            os.path.join("images", f"{self.original_name}.jpg"),
-            os.path.join("images", "super_humans", f"{self.original_name}.png"),
-            os.path.join("images", "super_humans", f"{self.original_name}.jpg"),
-            os.path.join("images", "arch_cards", f"{self.original_name}.png"),
-            os.path.join("images", "arch_cards", f"{self.original_name}.jpg"),
+            unique_path,
+            f"images/{self.original_name}.jpg",
+            f"images/super_humans/{self.original_name}.png",
+            f"images/super_humans/{self.original_name}.jpg",
         ]
-        fallback = os.path.join("images", "monster_default.png" if self.is_monster else "hero_default.png")
-        target_path = next((p for p in possible_paths if os.path.exists(p)), None)
+        target_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                target_path = path
+                break
         if not target_path:
-            target_path = fallback if os.path.exists(fallback) else None
-        if not target_path:
-            return None
+            target_path = fallback_monster if self.is_monster else fallback_hero
         try:
             img = pygame.image.load(target_path).convert_alpha()
             return pygame.transform.smoothscale(img, (90, 70))
-        except Exception:
+        except:
             return None
 
     def _get_rank(self, L):
@@ -2700,8 +2680,6 @@ class Card:
             _shine_surf.fill((255, 220, 0, int(18 * _shimmer)))
             surface.blit(_shine_surf, (x + 2, rect_y + 2))
 
-        # Lazy load — як у магазині осколків: завантажуємо при першому draw()
-        # На цей момент os.chdir вже виконано і відносні шляхи працюють
         if self.image is None:
             self.image = self._load_unique_image()
         if self.image:
@@ -4948,9 +4926,8 @@ class Game:
             "shard_shop_refresh": getattr(self, "shard_shop_refresh", 0),
             "shard_shop_bought":  getattr(self, "shard_shop_bought", []),
         }
-        if hasattr(sys, 'getandroidapilevel'):
-            _save_dir = APP_DIR
-        elif getattr(sys, 'frozen', False):
+        # Для .exe (PyInstaller) — зберігати поруч з .exe, не в temp папці
+        if getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
@@ -4969,9 +4946,8 @@ class Game:
 
     def load_game(self):
         import pathlib
-        if hasattr(sys, 'getandroidapilevel'):
-            _save_dir = APP_DIR
-        elif getattr(sys, 'frozen', False):
+        # Для .exe (PyInstaller) — читати поруч з .exe, не з temp папки
+        if getattr(sys, 'frozen', False):
             _save_dir = os.path.dirname(sys.executable)
         else:
             _save_dir = os.path.dirname(os.path.abspath(__file__))
