@@ -1253,10 +1253,17 @@ CARD_BORDER = (200, 200, 200)
 HIGHLIGHT = (0, 255, 255)
 GRAY = (100, 100, 100)
 
-font = pygame.font.SysFont("Verdana", 18)
-font_small = pygame.font.SysFont("Verdana", 12)
-font_bold = pygame.font.SysFont("Verdana", 14, bold=True)
-font_big = pygame.font.SysFont("Verdana", 36, bold=True)
+# На Android збільшуємо всі шрифти в 2 рази для читабельності
+if hasattr(sys, 'getandroidapilevel'):
+    font       = pygame.font.SysFont("Verdana", 36)
+    font_small = pygame.font.SysFont("Verdana", 24)
+    font_bold  = pygame.font.SysFont("Verdana", 28, bold=True)
+    font_big   = pygame.font.SysFont("Verdana", 52, bold=True)
+else:
+    font       = pygame.font.SysFont("Verdana", 18)
+    font_small = pygame.font.SysFont("Verdana", 12)
+    font_bold  = pygame.font.SysFont("Verdana", 14, bold=True)
+    font_big   = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def _load_image_safe(path, size=None):
@@ -2943,12 +2950,18 @@ class Card:
             surface.blit(scaled_img, (x + (w - img_w) // 2, rect_y + 40))
 
         # --- Шрифти збільшені в 2 рази для Android ---
-        _fS = pygame.font.SysFont("Verdana", 24)        # замість font_small (12)
-        _fB = pygame.font.SysFont("Verdana", 28, bold=True)  # замість font_bold (14)
+        # Шрифти для карти: використовуємо глобальні (вже збільшені на Android)
+        _fS = font_small
+        _fB = font_bold
 
         rank_surf = _fS.render(self.rank, True, (255, 215, 0) if self.evolved else (GOLD if self.level > 40 else WHITE))
-        name_surf = _fB.render(self.name, True, WHITE)
         lvl_surf  = _fS.render(f"LVL: {self.level}", True, (255, 160, 0) if self.evolved else GREEN)
+        # Назва карти: скорочуємо якщо не влазить
+        _name = self.name
+        name_surf = _fB.render(_name, True, WHITE)
+        while name_surf.get_width() > w - 6 and len(_name) > 4:
+            _name = _name[:-1]
+            name_surf = _fB.render(_name + "…", True, WHITE)
 
         surface.blit(rank_surf, (x + 5, rect_y + 5))
         surface.blit(lvl_surf,  (x + 5, rect_y + 28))
