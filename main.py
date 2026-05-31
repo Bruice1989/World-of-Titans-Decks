@@ -1260,31 +1260,19 @@ font_big = pygame.font.SysFont("Verdana", 36, bold=True)
 
 # --- ЗАВАНТАЖЕННЯ ФОТО ДЛЯ ВКЛАДОК МЕНЮ (папка images/World) ---
 def _load_image_safe(path, size=None):
-    """Завантажує зображення. Обходить проблему кирилиці/пробілів на Android."""
-    import io
-    img = None
-    # Спосіб 1: через open()+BytesIO — обходить кодування імені файлу на Android
+    """Завантажує зображення через pygame.image.load (працює на p4a/Android)."""
     try:
-        with open(path, 'rb') as f:
-            img = pygame.image.load(io.BytesIO(f.read()))
-    except Exception:
-        pass
-    # Спосіб 2: прямо через pygame (для відносних шляхів у APK assets)
-    if img is None:
+        img = pygame.image.load(path)
         try:
-            img = pygame.image.load(path)
+            img = img.convert_alpha()
         except Exception:
-            return None
-    try:
-        img = img.convert_alpha()
-    except Exception:
-        try:
             img = img.convert()
-        except Exception:
-            pass
-    if size:
-        img = pygame.transform.smoothscale(img, size)
-    return img
+        if size:
+            img = pygame.transform.smoothscale(img, size)
+        return img
+    except Exception as _e:
+        print(f"IMG_FAIL: {path} | {_e}")
+        return None
 
 def _load_titan_image(tid, size):
     """Шукає картинку титана: спочатку png, потім gif."""
@@ -1323,14 +1311,17 @@ def load_tab_image(filename, width, height):
 
 # --- ЗАВАНТАЖЕННЯ ІКОНОК ГАМАНЦЯ (папка images/Icon) ---
 def load_icon(filename, size=24):
-    for _ext in [".png", ".jpg", ".jpeg"]:
-        for _p in [f"images/Icon/{filename}{_ext}",
-                   os.path.join(APP_DIR, "images", "Icon", filename + _ext)]:
-            try:
-                img = pygame.image.load(_p).convert_alpha()
-                return pygame.transform.smoothscale(img, (size, size))
-            except Exception:
-                pass
+    # Пробуємо всі варіанти регістру: diamond, Diamond, DIAMOND
+    _names = list(dict.fromkeys([
+        filename, filename.capitalize(), filename.upper(), filename.lower()
+    ]))
+    for _n in _names:
+        for _ext in [".png", ".jpg", ".jpeg"]:
+            for _p in [f"images/Icon/{_n}{_ext}",
+                       os.path.join(APP_DIR, "images", "Icon", _n + _ext)]:
+                img = _load_image_safe(_p, (size, size))
+                if img:
+                    return img
     return None
 
 # Іконки гаманця (завантажуємо один раз)
@@ -2685,9 +2676,202 @@ class Card:
         return False
 
     def _load_unique_image(self):
-        """Завантажує картинку карти. Використовує _load_image_safe для Android/p4a."""
-        # Шукаємо за original_name і за display name (через RENAME_DICT)
-        names = list(dict.fromkeys([self.original_name, self.name]))
+        """Завантажує картинку карти. Шукає за латинською назвою для Android."""
+        _LAT = {
+        "Конан Воїн": "Conan_Warrior",
+        "Лицар Світла": "Light_Knight",
+        "Маг Стихій": "Elemental_Mage",
+        "Рицар в латах": "Armored_Knight",
+        "Залізний Паладин": "Iron_Paladin",
+        "Тіньовий Асасин": "Shadow_Assassin",
+        "Богиня Озера": "Lake_Goddess",
+        "Алмазний Дракон": "Diamond_Dragon",
+        "Небесний Фенікс": "Celestial_Phoenix",
+        "Прадавній Титан": "Ancient_Titan",
+        "Ангельський Робот": "Angel_Robot",
+        "Кислотний Бот": "Acid_Bot",
+        "Devil Gods": "Devil_Gods",
+        "Зоряний Архангел": "Star_Archangel",
+        "Кристальний Голем": "Crystal_Golem",
+        "Алмазний Рицар": "Diamond_Knight",
+        "Сапфірний Дракон": "Sapphire_Dragon",
+        "Небесний Страж": "Celestial_Guard",
+        "Священний Колос": "Sacred_Colossus",
+        "Вічний Пророк": "Eternal_Prophet",
+        "Зоряний Велетень": "Star_Giant",
+        "Небесна Богиня": "Celestial_Goddess",
+        "Діамантовий Феїнт": "Diamond_Feint",
+        "Небесний Суддя": "Celestial_Judge",
+        "Ангел-Руйнівник": "Angel_Destroyer",
+        "Кришталевий Воїн": "Crystal_Warrior",
+        "Сонячний Магістр": "Solar_Magister",
+        "Місячний Страж": "Moon_Guard",
+        "Зоряний Лорд": "Star_Lord",
+        "Небесний Дракон": "Celestial_Dragon",
+        "Алмазний Феїнт": "Diamond_Feint2",
+        "Сапфір Короля": "Kings_Sapphire",
+        "Грозовий Янгол": "Thunder_Angel",
+        "Космічний Страж": "Cosmic_Guard",
+        "Вічний Лицар": "Eternal_Knight",
+        "Серафім Небес": "Seraphim_Heaven",
+        "Блискавичний Бог": "Lightning_God",
+        "Королівство Грифон": "Kingdom_Griffon",
+        "Майстер Рун": "Rune_Master",
+        "НЛО": "UFO",
+        "Леді Ді": "Lady_Di",
+        "Angel Lar": "Angel_Lar",
+        "Золотий Орел": "Golden_Eagle",
+        "Мисливець Зорі": "Star_Hunter",
+        "Бронзовий Велетень": "Bronze_Giant",
+        "Золотий Феїнт": "Gold_Feint",
+        "Сонячний Паладин": "Solar_Paladin",
+        "Золота Стріла": "Golden_Arrow",
+        "Руновий Майстер": "Runic_Master",
+        "Золота Горгона": "Golden_Gorgon",
+        "Янтарний Страж": "Amber_Guard",
+        "Золотий Фенікс": "Golden_Phoenix",
+        "Сонячний Воїн": "Solar_Warrior",
+        "Золотий Маг": "Golden_Mage",
+        "Янтарний Дракон": "Amber_Dragon",
+        "Золота Відьма": "Golden_Witch",
+        "Металевий Лорд": "Metal_Lord",
+        "Бурштиновий Рицар": "Amber_Knight",
+        "Золотий Демон": "Golden_Demon",
+        "Сонячний Архімаг": "Solar_Archmage",
+        "Золотий Голем": "Golden_Golem",
+        "Яскравий Страж": "Bright_Guard",
+        "Золотий Пророк": "Golden_Prophet",
+        "Янтарна Богиня": "Amber_Goddess",
+        "Сонячний Колос": "Solar_Colossus",
+        "Золотий Архангел": "Golden_Archangel",
+        "Залізний Вепр": "Iron_Boar",
+        "Гном-коваль": "Gnome_Smith",
+        "Жива Броня": "Living_Armor",
+        "Sniper Bot": "Sniper_Bot",
+        "Tanos": "Tanos",
+        "Army Darkness": "Army_Darkness",
+        "Сталевий Воїн": "Steel_Warrior",
+        "Залізний Голем": "Iron_Golem",
+        "Рудяний Рицар": "Ore_Knight",
+        "Мідний Страж": "Copper_Guard",
+        "Бронзовий Кулак": "Bronze_Fist",
+        "Залізний Маг": "Iron_Mage",
+        "Сталева Горгона": "Steel_Gorgon",
+        "Рудяний Дракон": "Ore_Dragon",
+        "Металевий Демон": "Metal_Demon",
+        "Залізний Страж": "Iron_Guard",
+        "Сталевий Колос": "Steel_Colossus",
+        "Рудяний Фенікс": "Ore_Phoenix",
+        "Мідний Лицар": "Copper_Knight",
+        "Сталевий Маг": "Steel_Mage",
+        "Рудяний Голем": "Ore_Golem",
+        "Залізний Пророк": "Iron_Prophet",
+        "Бронзовий Дракон": "Bronze_Dragon",
+        "Мідна Богиня": "Copper_Goddess",
+        "Сталевий Демон": "Steel_Demon",
+        "Рудяний Воїн": "Ore_Warrior",
+        "Залізний Архімаг": "Iron_Archmage",
+        "Бронзовий Феїнт": "Bronze_Feint",
+        "Сталевий Лорд": "Steel_Lord",
+        "Рудяний Архангел": "Ore_Archangel",
+        "Авель": "Avel",
+        "Ангел Кастіїл": "Angel_Castiel",
+        "Сарафаїл": "Sarafail",
+        "Самандріїл": "Samandriel",
+        "Архангел Гавріїл": "Archangel_Gabriel",
+        "Рагуїл": "Raguel",
+        "Реміїл": "Remiel",
+        "Уріїл": "Uriel",
+        "Рафаїл": "Raphael",
+        "Архангел Міхаїл": "Archangel_Michael",
+        "Демон Перехрестя": "Crossroads_Demon",
+        "Демон Рубі": "Demon_Ruby",
+        "Мег": "Meg",
+        "Азазель": "Azazel",
+        "Кроулі з Пекла": "Crowley_Hell",
+        "Алестер": "Alester",
+        "Ліліт": "Lilith",
+        "Аббадон": "Abbadon",
+        "Люцифер": "Lucifer",
+        "Господь Чак": "Lord_Chuck",
+        "Гоблін-шпигун": "Goblin_Spy",
+        "Лісовий Тролль": "Forest_Troll",
+        "Болотяна Жаба": "Swamp_Frog",
+        "Дикий Кабан": "Wild_Boar",
+        "Скелет-лучник": "Skeleton_Archer",
+        "Павук-отруйник": "Poison_Spider",
+        "Кам'яний Громила": "Stone_Brute",
+        "Льодяний Йєті": "Ice_Yeti",
+        "Вовк-перевертень": "Werewolf",
+        "Темний Орк": "Dark_Orc",
+        "Підземний Крот": "Underground_Mole",
+        "Нічний Злодій": "Night_Thief",
+        "Отруйний Павук": "Venomous_Spider",
+        "Вогняний Ящір": "Fire_Lizard",
+        "Кістяний Воїн": "Bone_Warrior",
+        "Болотяний Велетень": "Swamp_Giant",
+        "Тіньовий Лучник": "Shadow_Archer",
+        "Зомбі-солдат": "Zombie_Soldier",
+        "Гігант Боб": "Giant_Bob",
+        "Кам'яний Голем": "Stone_Golem",
+        "Залізний Стрілець": "Iron_Shooter",
+        "Вогняна Горгона": "Fire_Gorgon",
+        "Льодяний Дракон": "Ice_Dragon",
+        "Темний Маг": "Dark_Mage",
+        "Крижаний Привид": "Ice_Ghost",
+        "Вампір Лорд": "Vampire_Lord",
+        "Страшний Демон": "Terrible_Demon",
+        "Залізний Робот": "Iron_Robot",
+        "Хаотичний Дух": "Chaotic_Spirit",
+        "Темний Лицар": "Dark_Knight",
+        "Пекельний DOOM": "Hellish_DOOM",
+        "Архідемон": "Archdemon",
+        "Хаосний Лорд": "Chaos_Lord",
+        "Нескорений Титан": "Unconquered_Titan",
+        "Безмежний Жах": "Boundless_Horror",
+        "Вічний Страж": "Eternal_Guard",
+        "Некромант": "Necromancer",
+        "Скелет-воїн": "Skeleton_Warrior",
+        "Ожилий Труп": "Undead_Corpse",
+        "Костяний Дракон": "Bone_Dragon",
+        "Мертвий Маг": "Dead_Mage",
+        "Привид Воїна": "Warrior_Ghost",
+        "Морський Монстр": "Sea_Monster",
+        "Русалка-вбивця": "Killer_Mermaid",
+        "Підводний Дракон": "Underwater_Dragon",
+        "Гігант Восьминіг": "Giant_Octopus",
+        "Акула-мутант": "Mutant_Shark",
+        "Морський Дух": "Sea_Spirit",
+        "Пустельний Скорпіон": "Desert_Scorpion",
+        "Піщаний Змій": "Sand_Serpent",
+        "Мумія Фараона": "Pharaoh_Mummy",
+        "Піщаний Голем": "Sand_Golem",
+        "Сфінкс-воїн": "Sphinx_Warrior",
+        "Давній Бог": "Ancient_God",
+        "Зоряний Демон": "Star_Demon",
+        "Космічний Жах": "Cosmic_Horror",
+        "Галактичний Лорд": "Galactic_Lord",
+        "Всесвітній Руйнівник": "World_Destroyer",
+        "Кінець Часів": "End_of_Times",
+        "Герой 0": "Hero_0",
+        "Герой 1": "Hero_1",
+        "Герой 2": "Hero_2",
+        "Герой 3": "Hero_3",
+        "Герой 4": "Hero_4",
+        "Герой 5": "Hero_5",
+        "Герой 6": "Hero_6",
+        "Монстр 3": "Monster_3",
+        "Монстр 4": "Monster_4",
+        "Золотий Лицар": "Golden_Knight",
+    }
+        names_ukr = list(dict.fromkeys([self.original_name, self.name]))
+        # Будуємо список імен для пошуку: оригінал + латинська версія
+        names = []
+        for _n in names_ukr:
+            names.append(_n)
+            if _n in _LAT:
+                names.append(_LAT[_n])
+        names = list(dict.fromkeys(names))
         subs = ["images", "images/super_humans", "images/arch_cards", "images/titans"]
         for _n in names:
             for _sub in subs:
@@ -2697,12 +2881,6 @@ class Card:
                         img = _load_image_safe(_p, (90, 70))
                         if img:
                             return img
-        # Fallback
-        _fb = "monster_default" if self.is_monster else "hero_default"
-        for _p in [f"images/{_fb}.png", os.path.join(APP_DIR, "images", f"{_fb}.png")]:
-            img = _load_image_safe(_p, (90, 70))
-            if img:
-                return img
         return None
 
     def _get_rank(self, L):
@@ -2753,10 +2931,11 @@ class Card:
 
         # Lazy load: завантажуємо при першому малюванні (Android-safe)
         # _img_tried=True означає що вже пробували і не знайшли — не пробуємо знову
-        if self.image is None and not getattr(self, '_img_tried', False):
+        if self.image is None:
             self.image = self._load_unique_image()
             if self.image is None:
-                self._img_tried = True
+                # Зберігаємо sentinel щоб не пробувати знову
+                self.image = False
         if self.image:
             img_w = int(w * 0.8)
             img_h = int(h * 0.4)
@@ -10139,12 +10318,34 @@ class Game:
                     pygame.draw.rect(screen,_ec,_img_box,1,border_radius=8)
                     # Спробуємо завантажити картинку есенції
                     _ess_ok = False
-                    for _ep in [f"images/essences/{_ess['name']}.png",
-                                os.path.join(APP_DIR,"images","essences",f"{_ess['name']}.png")]:
-                        _ei_img = _load_image_safe(_ep, (_iw-4, _ih-4))
-                        if _ei_img:
-                            screen.blit(_ei_img,(_ex+(_EW-_iw)//2+2,_ey+7))
-                            _ess_ok=True; break
+                    _ESS_LAT = {
+                        "Сутність Вогню": "Essence_Fire",
+                        "Сутність Льоду": "Essence_Ice",
+                        "Сутність Грому": "Essence_Thunder",
+                        "Сутність Тіні": "Essence_Shadow",
+                        "Сутність Світла": "Essence_Light",
+                        "Сутність Хаосу": "Essence_Chaos",
+                        "Сутність Природи": "Essence_Nature",
+                        "Сутність Смерті": "Essence_Death",
+                        "Сутність Дзеркала": "Essence_Mirror",
+                        "Сутність Часу": "Essence_Time",
+                        "Сутність Простору": "Essence_Space",
+                        "Сутність Розуму": "Essence_Mind",
+                        "Сутність Долі": "Essence_Fate",
+                        "Сутність Крові": "Essence_Blood",
+                        "Сутність Душі": "Essence_Soul",
+                        "Сутність Космосу": "Essence_Cosmos",
+                    }
+                    _en = _ess['name']
+                    _enames = [_en, _ESS_LAT.get(_en, _en)]
+                    for _en2 in _enames:
+                        for _ep in [f"images/essences/{_en2}.png",
+                                    os.path.join(APP_DIR,"images","essences",f"{_en2}.png")]:
+                            _ei_img = _load_image_safe(_ep, (_iw-4, _ih-4))
+                            if _ei_img:
+                                screen.blit(_ei_img,(_ex+(_EW-_iw)//2+2,_ey+7))
+                                _ess_ok=True; break
+                        if _ess_ok: break
                     if not _ess_ok:
                         _sym = "💎"
                         _ss = font_bold.render(_sym,True,_ec)
