@@ -5943,18 +5943,22 @@ class Game:
 
     def _online_req(self, method, path, data=None, timeout=5):
         """HTTP запит до сервера. Повертає dict або None."""
-        import urllib.request, urllib.error, json as _j
+        import urllib.request, urllib.error, json as _j, ssl
         url = ONLINE_SERVER + path
+        # Ігноруємо SSL помилки на Android (p4a не має системних сертифікатів)
+        _ctx = ssl.create_default_context()
+        _ctx.check_hostname = False
+        _ctx.verify_mode = ssl.CERT_NONE
         try:
             if method == "GET":
                 req = urllib.request.Request(url)
-                with urllib.request.urlopen(req, timeout=timeout) as r:
+                with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as r:
                     return _j.loads(r.read())
             else:
                 body = _j.dumps(data, ensure_ascii=False).encode("utf-8")
                 req  = urllib.request.Request(url, data=body,
                        headers={"Content-Type":"application/json"})
-                with urllib.request.urlopen(req, timeout=timeout) as r:
+                with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as r:
                     return _j.loads(r.read())
         except Exception as e:
             self.online_status = f"Помилка мережі: {e}"
