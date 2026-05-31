@@ -2942,56 +2942,68 @@ class Card:
             scaled_img = pygame.transform.smoothscale(self.image, (img_w, img_h))
             surface.blit(scaled_img, (x + (w - img_w) // 2, rect_y + 40))
 
-        rank_surf = font_small.render(self.rank, True, (255, 215, 0) if self.evolved else (GOLD if self.level > 40 else WHITE))
-        name_surf = font_bold.render(self.name, True, WHITE)
-        lvl_surf  = font_small.render(f"LVL: {self.level}", True, (255, 160, 0) if self.evolved else GREEN)
+        # --- Шрифти збільшені в 2 рази для Android ---
+        _fS = pygame.font.SysFont("Verdana", 24)        # замість font_small (12)
+        _fB = pygame.font.SysFont("Verdana", 28, bold=True)  # замість font_bold (14)
+
+        rank_surf = _fS.render(self.rank, True, (255, 215, 0) if self.evolved else (GOLD if self.level > 40 else WHITE))
+        name_surf = _fB.render(self.name, True, WHITE)
+        lvl_surf  = _fS.render(f"LVL: {self.level}", True, (255, 160, 0) if self.evolved else GREEN)
 
         surface.blit(rank_surf, (x + 5, rect_y + 5))
-        surface.blit(lvl_surf,  (x + 5, rect_y + 22))
-        surface.blit(name_surf, (x + (w - name_surf.get_width())//2, rect_y + h - 75))
+        surface.blit(lvl_surf,  (x + 5, rect_y + 28))
+        surface.blit(name_surf, (x + max(0,(w - name_surf.get_width())//2), rect_y + h - 90))
 
         # --- Очки карти + значок еволюції ---
-        pts_surf = font_bold.render(str(get_titan_card_points(self)), True, (80, 150, 255))
+        pts_surf = _fB.render(str(get_titan_card_points(self)), True, (80, 150, 255))
         _pts_x = x + w - pts_surf.get_width() - 4
         if self.evolved:
-            _pts_x -= 18   # зсуваємо ліворуч щоб вмістити значок
+            _pts_x -= 22
         surface.blit(pts_surf, (_pts_x, rect_y + 4))
-        # Значок еволюції "Ev" або "EvII"
         if self.evolved and not grayscale:
             _pulse2 = abs(math.sin(time.time() * 4.0))
             _tier = getattr(self,'evo_tier',1)
             _ev_label = "EvII" if _tier >= 2 else "Ev"
             _ic = (255, int(180+75*_pulse2), 0) if _tier < 2 else (255, int(100+155*_pulse2), int(20*_pulse2))
-            _evo_s = font_small.render(_ev_label, True, _ic)
+            _evo_s = _fS.render(_ev_label, True, _ic)
             surface.blit(_evo_s, (x + w - _evo_s.get_width() - 3, rect_y + 4))
 
+        # --- XP бар + текст в одному рядку ---
         xp_ratio = max(0.0, min(1.0, self.xp / max(1, self.max_xp)))
+        _bar_h = 16  # висота шкали
+        _xp_y = rect_y + h - 68  # позиція XP шкали
+        _hp_y = rect_y + h - 44  # позиція HP шкали
+        _atk_y = rect_y + h - 22  # позиція ATK тексту
+
         if self.evolved:
-            # Прогрес-бар для divine_xp
             _dxp_ratio = max(0.0, min(1.0, self.divine_xp / 100.0))
-            pygame.draw.rect(surface, (40, 40, 40),    (x + 5, rect_y + h - 55, w - 10, 12))
-            pygame.draw.rect(surface, (200, 140, 0),   (x + 5, rect_y + h - 55, max(0, min(w-10, int((w - 10) * _dxp_ratio))), 12))
-            xp_text = font_small.render(f"EVO XP: {self.divine_xp}/100", True, (255, 200, 80))
+            pygame.draw.rect(surface, (40, 40, 40),  (x + 5, _xp_y, w - 10, _bar_h))
+            pygame.draw.rect(surface, (200, 140, 0), (x + 5, _xp_y, max(0, min(w-10, int((w-10)*_dxp_ratio))), _bar_h))
+            xp_text = _fS.render(f"EVO: {self.divine_xp}/100", True, (255, 200, 80))
         else:
-            pygame.draw.rect(surface, (40, 40, 40), (x + 5, rect_y + h - 55, w - 10, 12))
-            pygame.draw.rect(surface, BLUE, (x + 5, rect_y + h - 55, max(0, min(w-10, int((w - 10) * xp_ratio))), 12))
-            xp_text = font_small.render(f"XP: {int(xp_ratio*100)}%", True, WHITE)
-        surface.blit(xp_text, (x + w//2 - xp_text.get_width()//2, rect_y + h - 58))
+            pygame.draw.rect(surface, (40, 40, 40), (x + 5, _xp_y, w - 10, _bar_h))
+            pygame.draw.rect(surface, BLUE, (x + 5, _xp_y, max(0, min(w-10, int((w-10)*xp_ratio))), _bar_h))
+            xp_text = _fS.render(f"XP: {int(xp_ratio*100)}%", True, WHITE)
+        # Текст XP поверх шкали
+        surface.blit(xp_text, (x + w//2 - xp_text.get_width()//2, _xp_y))
 
+        # --- HP шкала + текст в одному рядку ---
         hp_ratio = max(0.0, min(1.0, self.hp / max(1, self.max_hp)))
-        pygame.draw.rect(surface, (100, 0, 0), (x + 5, rect_y + h - 35, w - 10, 12))
+        pygame.draw.rect(surface, (100, 0, 0), (x + 5, _hp_y, w - 10, _bar_h))
         _hp_bar_w = max(0, min(w - 10, int((w - 10) * hp_ratio)))
-        pygame.draw.rect(surface, GREEN, (x + 5, rect_y + h - 35, _hp_bar_w, 12))
+        pygame.draw.rect(surface, GREEN, (x + 5, _hp_y, _hp_bar_w, _bar_h))
+        hp_text = _fS.render(f"{int(self.hp)}/{self.max_hp}", True, WHITE)
+        # Текст HP поверх шкали
+        surface.blit(hp_text, (x + w//2 - hp_text.get_width()//2, _hp_y))
 
-        hp_text  = font_small.render(f"{int(self.hp)}/{self.max_hp}", True, WHITE)
-        atk_text = font_small.render(f"ATK: {self.attack}", True, RED)
-        surface.blit(hp_text,  (x + w//2 - hp_text.get_width()//2, rect_y + h - 38))
-        surface.blit(atk_text, (x + 5, rect_y + h - 22))
+        # --- ATK ---
+        atk_text = _fB.render(f"ATK:{self.attack}", True, RED)
+        surface.blit(atk_text, (x + 5, _atk_y))
 
         # Реген для еволюціонованих
         if self.evolved and self.regen > 0 and not grayscale:
-            regen_text = font_small.render(f"♻ {self.regen}HP/хід", True, (80, 255, 180))
-            surface.blit(regen_text, (x + w - regen_text.get_width() - 4, rect_y + h - 22))
+            regen_text = _fS.render(f"♻{self.regen}/хід", True, (80, 255, 180))
+            surface.blit(regen_text, (x + w - regen_text.get_width() - 4, _atk_y))
 
         # --- Зірки здібностей ---
         if not grayscale:
@@ -10320,21 +10332,127 @@ class Game:
                     _ess_ok = False
                     _ESS_LAT = {
                         "Сутність Вогню": "Essence_Fire",
-                        "Сутність Льоду": "Essence_Ice",
-                        "Сутність Грому": "Essence_Thunder",
+                        "Сутність Води": "Essence_Water",
+                        "Сутність Блискавки": "Essence_Lightning",
+                        "Сутність Телекінезу": "Essence_Telekinesis",
+                        "Сутність Подвійного Удару": "Essence_Double_Strike",
+                        "Сутність Вампіра": "Essence_Vampire",
+                        "Сутність Вибуху": "Essence_Explosion",
+                        "Сутність Метеорита": "Essence_Meteor",
+                        "Сутність Третього Ока": "Essence_Third_Eye",
                         "Сутність Тіні": "Essence_Shadow",
-                        "Сутність Світла": "Essence_Light",
-                        "Сутність Хаосу": "Essence_Chaos",
-                        "Сутність Природи": "Essence_Nature",
-                        "Сутність Смерті": "Essence_Death",
+                        "Сутність Зграї": "Essence_Pack",
+                        "Сутність Дракона": "Essence_Dragon",
+                        "Сутність Стрілця": "Essence_Archer",
+                        "Сутність Лави": "Essence_Lava",
+                        "Сутність Посейдона": "Essence_Poseidon",
+                        "Сутність Стихій": "Essence_Elements",
+                        "Сутність Сталі": "Essence_Steel",
+                        "Сутність Милосердя": "Essence_Mercy",
+                        "Сутність Руйнівника": "Essence_Destroyer",
                         "Сутність Дзеркала": "Essence_Mirror",
-                        "Сутність Часу": "Essence_Time",
-                        "Сутність Простору": "Essence_Space",
-                        "Сутність Розуму": "Essence_Mind",
-                        "Сутність Долі": "Essence_Fate",
                         "Сутність Крові": "Essence_Blood",
-                        "Сутність Душі": "Essence_Soul",
-                        "Сутність Космосу": "Essence_Cosmos",
+                        "Сутність Несподіванки": "Essence_Surprise",
+                        "Сутність Пронизування": "Essence_Pierce",
+                        "Сутність Грому": "Essence_Thunder",
+                        "Сутність Попелу": "Essence_Ash",
+                        "Сутність Кристалу": "Essence_Crystal",
+                        "Сутність Кола": "Essence_Circle",
+                        "Сутність Прориву": "Essence_Breakthrough",
+                        "Сутність Жаги": "Essence_Thirst",
+                        "Сутність Люті": "Essence_Fury",
+                        "Сутність Пекла": "Essence_Hell",
+                        "Сутність Точності": "Essence_Precision",
+                        "Сутність Клинків": "Essence_Blades",
+                        "Сутність Розрізу": "Essence_Slash",
+                        "Сутність Фантому": "Essence_Phantom",
+                        "Сутність Смерті": "Essence_Death",
+                        "Сутність Мисливця": "Essence_Hunter",
+                        "Сутність Каскаду": "Essence_Cascade",
+                        "Сутність Болю": "Essence_Pain",
+                        "Сутність Помсти": "Essence_Revenge",
+                        "Сутність Землі": "Essence_Earth",
+                        "Сутність Зцілення": "Essence_Healing",
+                        "Сутність Чуми": "Essence_Plague",
+                        "Сутність Зірок": "Essence_Stars",
+                        "Сутність Торнадо": "Essence_Tornado",
+                        "Сутність Подиху": "Essence_Breath",
+                        "Сутність Криги": "Essence_Ice",
+                        "Сутність Магніту": "Essence_Magnet",
+                        "Сутність Ядра": "Essence_Core",
+                        "Сутність Бурі": "Essence_Storm",
+                        "Сутність Морозу": "Essence_Frost",
+                        "Сутність Отрути": "Essence_Poison",
+                        "Сутність Сну": "Essence_Sleep",
+                        "Сутність Павутини": "Essence_Web",
+                        "Сутність Слабості": "Essence_Weakness",
+                        "Сутність Туману": "Essence_Fog",
+                        "Сутність Прокляття": "Essence_Curse",
+                        "Сутність Костей": "Essence_Bones",
+                        "Сутність Кріо": "Essence_Cryo",
+                        "Сутність Нейро": "Essence_Neuro",
+                        "Сутність Розуму": "Essence_Mind",
+                        "Сутність Часу": "Essence_Time",
+                        "Сутність Безумства": "Essence_Madness",
+                        "Сутність Ланцюга": "Essence_Chain",
+                        "Сутність Пожежі": "Essence_Fire2",
+                        "Сутність Кишені": "Essence_Pocket",
+                        "Сутність Атрофії": "Essence_Atrophy",
+                        "Сутність Тиші": "Essence_Silence",
+                        "Сутність Горгони": "Essence_Gorgon",
+                        "Сутність Некрозу": "Essence_Necrosis",
+                        "Сутність Ляльки": "Essence_Puppet",
+                        "Сутність Рулетки": "Essence_Roulette",
+                        "Сутність Іржі": "Essence_Rust",
+                        "Сутність Летаргії": "Essence_Lethargy",
+                        "Сутність Трави": "Essence_Herb",
+                        "Сутність Квітки": "Essence_Flower",
+                        "Сутність Роси": "Essence_Dew",
+                        "Сутність Регену": "Essence_Regen",
+                        "Сутність Благодаті": "Essence_Grace",
+                        "Сутність Сяйва": "Essence_Radiance",
+                        "Сутність Причастя": "Essence_Communion",
+                        "Сутність Предків": "Essence_Ancestors",
+                        "Сутність Жертви": "Essence_Sacrifice",
+                        "Сутність Фенікса": "Essence_Phoenix",
+                        "Сутність Авангарду": "Essence_Vanguard",
+                        "Сутність Братства": "Essence_Brotherhood",
+                        "Сутність Гніву": "Essence_Wrath",
+                        "Сутність Богині": "Essence_Goddess",
+                        "Сутність Лева": "Essence_Lion",
+                        "Сутність Мантії": "Essence_Mantle",
+                        "Сутність Чистоти": "Essence_Purity",
+                        "Сутність Фокусу": "Essence_Focus",
+                        "Сутність Пакту": "Essence_Pact",
+                        "Сутність Синергії": "Essence_Synergy",
+                        "Сутність Воскресіння": "Essence_Resurrection",
+                        "Сутність Відродження": "Essence_Rebirth",
+                        "Сутність Темряви": "Essence_Darkness",
+                        "Сутність Щита": "Essence_Shield",
+                        "Сутність Орла": "Essence_Eagle",
+                        "Сутність Удачі": "Essence_Luck",
+                        "Сутність Аури": "Essence_Aura",
+                        "Сутність Порталу": "Essence_Portal",
+                        "Сутність Зорі": "Essence_Star",
+                        "Сутність Зупинки": "Essence_Stop",
+                        "Сутність Відбиття": "Essence_Reflection",
+                        "Сутність Рева": "Essence_Roar",
+                        "Сутність Ключа": "Essence_Key",
+                        "Сутність Місяця": "Essence_Moon",
+                        "Сутність Безодні": "Essence_Abyss",
+                        "Сутність Висилки": "Essence_Exile",
+                        "Сутність Жнеця": "Essence_Reaper",
+                        "Сутність Небес": "Essence_Heaven",
+                        "Сутність Втілення": "Essence_Incarnation",
+                        "Сутність Колапсу": "Essence_Collapse",
+                        "Сутність Духу": "Essence_Spirit",
+                        "Сутність Викривлення": "Essence_Distortion",
+                        "Сутність Деградації": "Essence_Degradation",
+                        "Сутність Інверсії": "Essence_Inversion",
+                        "Сутність Уз": "Essence_Bonds",
+                        "Сутність Шансу": "Essence_Chance",
+                        "Сутність Форми": "Essence_Form",
+                        "Сутність Мовчання": "Essence_Silence2",
                     }
                     _en = _ess['name']
                     _enames = [_en, _ESS_LAT.get(_en, _en)]
