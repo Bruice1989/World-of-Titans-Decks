@@ -11678,12 +11678,19 @@ def main():
     game = Game()
     clock = pygame.time.Clock()
     while True:
-        game.draw(*screen.get_size())
+        try:
+            game.draw(*screen.get_size())
+        except Exception as _draw_err:
+            # При повороті екрану screen може тимчасово бути невалідним — пропускаємо кадр
+            print(f"[draw skip] {_draw_err}")
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game.save_game(); pygame.quit(); sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                game.handle_click(event.pos)
+                try:
+                    game.handle_click(event.pos)
+                except Exception as _click_err:
+                    print(f"[click skip] {_click_err}")
             if event.type == pygame.KEYDOWN:
                 # Ввід IP для LAN
                 if getattr(game, "lb_ip_active", False):
@@ -11708,18 +11715,68 @@ def main():
                     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
                     _is_fullscreen = False
             if event.type == pygame.VIDEORESIZE:
-                if hasattr(sys, 'getandroidapilevel'):
-                    new_w = max(event.w, event.h)
-                    new_h = min(event.w, event.h)
-                    screen = pygame.display.set_mode((new_w, new_h), pygame.FULLSCREEN | pygame.NOFRAME)
-                else:
-                    screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                try:
+                    if hasattr(sys, 'getandroidapilevel'):
+                        # Android: завжди альбомна — беремо більший розмір за ширину
+                        new_w = max(event.w, event.h)
+                        new_h = min(event.w, event.h)
+                        try:
+                            screen = pygame.display.set_mode(
+                                (new_w, new_h), pygame.FULLSCREEN | pygame.NOFRAME)
+                        except Exception:
+                            # Якщо не вдалось — пробуємо без прапорів
+                            try:
+                                screen = pygame.display.set_mode((new_w, new_h), 0)
+                            except Exception:
+                                pass  # залишаємо попередній screen
+                    else:
+                        screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                except Exception:
+                    pass  # не падаємо — продовжуємо з попереднім screen
+            # SDL2/pygame2: WINDOWRESIZED (новіший евент повороту на Android)
+            _WINDOWRESIZED = getattr(pygame, 'WINDOWRESIZED', None)
+            if _WINDOWRESIZED and event.type == _WINDOWRESIZED:
+                try:
+                    info2 = pygame.display.Info()
+                    rw2, rh2 = info2.current_w, info2.current_h
+                    if hasattr(sys, 'getandroidapilevel'):
+                        rw2, rh2 = max(rw2, rh2), min(rw2, rh2)
+                    try:
+                        screen = pygame.display.set_mode(
+                            (rw2, rh2),
+                            pygame.FULLSCREEN | pygame.NOFRAME if hasattr(sys, 'getandroidapilevel') else pygame.RESIZABLE)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
         # Обробка зміни розміру через кнопки налаштувань
         if getattr(game, "pending_resolution", None):
             rw, rh = game.pending_resolution
-            screen = pygame.display.set_mode((rw, rh), pygame.RESIZABLE)
+            try:
+                screen = pygame.display.set_mode((rw, rh), pygame.RESIZABLE)
+            except Exception:
+                pass
             _is_fullscreen = False
             game.pending_resolution = None
+        # ── Android: синхронізація розміру після повороту (fallback) ──────────
+        if hasattr(sys, 'getandroidapilevel'):
+            try:
+                _dinfo = pygame.display.Info()
+                _real_w = max(_dinfo.current_w, _dinfo.current_h)
+                _real_h = min(_dinfo.current_w, _dinfo.current_h)
+                _cur_w, _cur_h = screen.get_size()
+                if (_real_w > 0 and _real_h > 0 and
+                        (_real_w != _cur_w or _real_h != _cur_h)):
+                    try:
+                        screen = pygame.display.set_mode(
+                            (_real_w, _real_h), pygame.FULLSCREEN | pygame.NOFRAME)
+                    except Exception:
+                        try:
+                            screen = pygame.display.set_mode((_real_w, _real_h), 0)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
         # ── Обробка черги LAN повідомлень ──────────────────────────────────
         while not _lan_msg_queue.empty():
             try:
