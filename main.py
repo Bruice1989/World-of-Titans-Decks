@@ -4286,7 +4286,10 @@ def apply_titan_ability(game, ability_key, level):
         clone.attack = max(1, src.attack + atk_b)
         clone.name   = f"Тінь:{src.name}"
         max_c = get_titan_max_cards(level)
-        if len(game.army) < max_c:
+        army_lim = get_titan_army_limit(level)
+        cur_pts_cl = sum(get_titan_card_points(c) for c in game.army)
+        clone_pts = get_titan_card_points(clone)
+        if len(game.army) < max_c and cur_pts_cl + clone_pts <= army_lim:
             game.army.append(clone)
         # ── Ефект: срібний спалах + дзеркальні частки
         spawn_ability_effect("Воскресіння", _hcx(), _hcy(), _hcx()+60, _hcy()-30)
@@ -4408,7 +4411,10 @@ def apply_titan_ability(game, ability_key, level):
         revived.is_alive = True
         revived.hp = max(1, int(revived.max_hp * (0.3 + bonus * 0.03)))
         max_c = get_titan_max_cards(level)
-        if len(game.army) < max_c:
+        army_lim_rv = get_titan_army_limit(level)
+        cur_pts_rv = sum(get_titan_card_points(c) for c in game.army)
+        rev_pts = get_titan_card_points(revived)
+        if len(game.army) < max_c and cur_pts_rv + rev_pts <= army_lim_rv:
             game.army.append(revived)
             game.all_heroes.append(revived)
             game.graveyard.remove(revived)
@@ -4470,7 +4476,11 @@ def apply_titan_ability(game, ability_key, level):
         shadow.max_hp = int(src.max_hp * (1.3 + bonus * 0.03))
         shadow.hp = shadow.max_hp
         max_c = get_titan_max_cards(level)
-        if len(game.army) < max_c: game.army.append(shadow)
+        army_lim_sh = get_titan_army_limit(level)
+        cur_pts_sh = sum(get_titan_card_points(c) for c in game.army)
+        shadow_pts = get_titan_card_points(shadow)
+        if len(game.army) < max_c and cur_pts_sh + shadow_pts <= army_lim_sh:
+            game.army.append(shadow)
         # ── Ефект: дракон-тінь — темно-зелений + вогонь
         spawn_ability_effect("Подих Дракона", _hcx(), _hcy(), _hcx()+80, _hcy()-40)
         spawn_ability_effect("Тіньовий Клинок", _hcx(), _hcy(), _hcx(), _hcy())
@@ -4496,7 +4506,11 @@ def apply_titan_ability(game, ability_key, level):
             s.is_monster = False
             s.name = f"Захоп:{s.name}"
             max_c = get_titan_max_cards(level)
-            if len(game.army) < max_c: game.army.append(s)
+            army_lim_sc = get_titan_army_limit(level)
+            cur_pts_sc = sum(get_titan_card_points(c) for c in game.army)
+            stolen_pts = get_titan_card_points(s)
+            if len(game.army) < max_c and cur_pts_sc + stolen_pts <= army_lim_sc:
+                game.army.append(s)
         # ── Ефект: квантовий вихор
         spawn_ability_effect("Портал", _hcx(), _hcy(), _ecx(), _ecy())
         spawn_ability_effect("Телекінез", _hcx(), _hcy(), _ecx(), _ecy())
@@ -4527,7 +4541,11 @@ def apply_titan_ability(game, ability_key, level):
             clone_u = Card(src_u.original_name, src_u.level)
             clone_u.name = f"Абс:{src_u.name}"
             max_c = get_titan_max_cards(level)
-            if len(game.army) < max_c: game.army.append(clone_u)
+            army_lim_u = get_titan_army_limit(level)
+            cur_pts_u = sum(get_titan_card_points(c) for c in game.army)
+            clone_u_pts = get_titan_card_points(clone_u)
+            if len(game.army) < max_c and cur_pts_u + clone_u_pts <= army_lim_u:
+                game.army.append(clone_u)
         # ── Ефект: АБСОЛЮТНА СИЛА — все одразу
         spawn_ability_effect("Зоряна Сила", _hcx(), _hcy(), _ecx(), _ecy())
         spawn_ability_effect("Ядерна Хвиля", _hcx(), _hcy(), _ecx(), _ecy())
@@ -8403,118 +8421,98 @@ class Game:
                 p.update(); p.draw(screen)
                 if p.life <= 0: death_effects.remove(p)
 
-            # --- Крижані ефекти (сосульки на рамці карти) ---
-            now_fx = time.time()
-            for ice in ice_effects[:]:
-                if now_fx > ice["end_time"]: ice_effects.remove(ice); continue
-                cr = ice["card"].rect
-                if cr.width > 0:
-                    for si in range(5):
-                        sx = cr.left + si * cr.width // 5 + random.randint(0,10)
-                        sy_i = cr.top - random.randint(0, 8)
-                        sh_i = random.randint(10, 22)
-                        pygame.draw.polygon(screen, (180,230,255),
-                            [(sx, sy_i),(sx+4,sy_i),(sx+2,sy_i+sh_i)])
-                    pygame.draw.rect(screen, (80,200,255), cr, 3, border_radius=10)
+            # ── Псевдо-3D ефекти здібностей (молнії, вогонь, стріли тощо) ──
+            draw_ability_effects_3d(screen)
 
-            # --- Щит-ефекти (золоте коло навколо карти) ---
-            for sh_e in shield_effects[:]:
-                if now_fx > sh_e["end_time"]: shield_effects.remove(sh_e); continue
-                cr = sh_e["card"].rect
-                if cr.width > 0:
-                    pulse_sh = abs(math.sin(now_fx * 4)) * 4
-                    pygame.draw.rect(screen, (255,220,0),
-                        (cr.left-int(pulse_sh), cr.top-int(pulse_sh),
-                         cr.width+int(pulse_sh*2), cr.height+int(pulse_sh*2)), 4, border_radius=12)
+            # ── Крижані ефекти (сосульки на рамці карти) ──
+            _now_fx_b = time.time()
+            for _ice_b in ice_effects[:]:
+                if _now_fx_b > _ice_b["end_time"]: ice_effects.remove(_ice_b); continue
+                _cr_b = _ice_b["card"].rect
+                if _cr_b.width > 0:
+                    for _si_b in range(5):
+                        _sx_b = _cr_b.left + _si_b * _cr_b.width // 5 + random.randint(0, 10)
+                        _sy_b = _cr_b.top - random.randint(0, 8)
+                        _sh_b = random.randint(10, 22)
+                        pygame.draw.polygon(screen, (180, 230, 255),
+                            [(_sx_b, _sy_b), (_sx_b + 4, _sy_b), (_sx_b + 2, _sy_b + _sh_b)])
+                    pygame.draw.rect(screen, (80, 200, 255), _cr_b, 3, border_radius=10)
 
-            # --- Трав'яні ефекти (зелені іскри навколо карти) ---
-            for gr in grass_effects[:]:
-                if now_fx > gr["end_time"]: grass_effects.remove(gr); continue
-                cr = gr["card"].rect
-                if cr.width > 0:
+            # ── Щит-ефекти (золоте коло навколо карти) ──
+            for _sh_b in shield_effects[:]:
+                if _now_fx_b > _sh_b["end_time"]: shield_effects.remove(_sh_b); continue
+                _cr_b = _sh_b["card"].rect
+                if _cr_b.width > 0:
+                    _pulse_b = abs(math.sin(_now_fx_b * 4)) * 4
+                    pygame.draw.rect(screen, (255, 220, 0),
+                        (_cr_b.left - int(_pulse_b), _cr_b.top - int(_pulse_b),
+                         _cr_b.width + int(_pulse_b * 2), _cr_b.height + int(_pulse_b * 2)), 4, border_radius=12)
+
+            # ── Трав'яні ефекти (зелені іскри) ──
+            for _gr_b in grass_effects[:]:
+                if _now_fx_b > _gr_b["end_time"]: grass_effects.remove(_gr_b); continue
+                _cr_b = _gr_b["card"].rect
+                if _cr_b.width > 0:
                     for _ in range(3):
-                        gx = random.randint(cr.left, cr.right)
-                        gy = random.randint(cr.top, cr.bottom)
-                        pygame.draw.circle(screen, (50,220,80), (gx,gy), random.randint(2,5))
-                    pygame.draw.rect(screen, (30,180,60), cr, 2, border_radius=10)
+                        pygame.draw.circle(screen, (50, 220, 80),
+                            (random.randint(_cr_b.left, _cr_b.right),
+                             random.randint(_cr_b.top, _cr_b.bottom)), random.randint(2, 5))
+                    pygame.draw.rect(screen, (30, 180, 60), _cr_b, 2, border_radius=10)
 
-            # --- Стрілові ефекти (жовті риски) ---
-            for ar in arrow_effects[:]:
-                if now_fx > ar["end_time"]: arrow_effects.remove(ar); continue
-                cr = ar["card"].rect
-                if cr.width > 0:
+            # ── Стрілові ефекти (жовті риски) ──
+            for _ar_b in arrow_effects[:]:
+                if _now_fx_b > _ar_b["end_time"]: arrow_effects.remove(_ar_b); continue
+                _cr_b = _ar_b["card"].rect
+                if _cr_b.width > 0:
                     for _ in range(4):
-                        ax_s = cr.centerx + random.randint(-20,20)
-                        ay_s = cr.top - random.randint(10,30)
-                        pygame.draw.line(screen,(255,220,50),(ax_s,ay_s),(ax_s+3,ay_s+18),3)
+                        _ax_b = _cr_b.centerx + random.randint(-20, 20)
+                        _ay_b = _cr_b.top - random.randint(10, 30)
+                        pygame.draw.line(screen, (255, 220, 50), (_ax_b, _ay_b), (_ax_b + 3, _ay_b + 18), 3)
 
-            # --- Ланцюгові ефекти (блакитна рамка) ---
-            for ch in chain_effects[:]:
-                if now_fx > ch["end_time"]: chain_effects.remove(ch); continue
-                cr = ch["card"].rect
-                if cr.width > 0:
-                    pygame.draw.rect(screen,(80,160,255), cr, 4, border_radius=10)
+            # ── Ланцюгові ефекти (блакитна рамка) ──
+            for _ch_b in chain_effects[:]:
+                if _now_fx_b > _ch_b["end_time"]: chain_effects.remove(_ch_b); continue
+                _cr_b = _ch_b["card"].rect
+                if _cr_b.width > 0:
+                    pygame.draw.rect(screen, (80, 160, 255), _cr_b, 4, border_radius=10)
 
-            # --- Вогняна анімація нижньої рамки (Вогняний Колос) ---
-            _now = time.time()
-            for _fe in fire_card_effects[:]:
-                if _now > _fe["end_time"]:
-                    fire_card_effects.remove(_fe); continue
-                _r = _fe["card"].rect
-                if not _r: continue
-                _remain = _fe["end_time"] - _now          # скільки лишилось
-                _fade   = min(1.0, _remain / 1.5)         # затухає в останні 1.5 с
-                # Нові частинки вздовж нижньої кромки карти
-                _flame_count = int(5 * _fade) + 1
-                for _ in range(_flame_count):
-                    _fx = random.randint(_r.left + 4, _r.right - 4)
-                    _fy = _r.bottom - random.randint(0, 8)
-                    _fvx = random.uniform(-0.8, 0.8)
-                    _fvy = random.uniform(-3.2, -1.2)
-                    _heat = random.random()
-                    if _heat > 0.65:   _fc = (255, 230, 60)
-                    elif _heat > 0.35: _fc = (255, 110, 15)
-                    else:              _fc = (210, 30, 0)
-                    _fe["particles"].append({
-                        "x": float(_fx), "y": float(_fy),
-                        "vx": _fvx, "vy": _fvy,
-                        "life": random.randint(20, 40),
-                        "max_life": 40,
-                        "color": _fc,
-                        "size": random.uniform(2.5, 6.0)
+            # ── Вогняна анімація рамки (Вогняний Колос і атаки) ──
+            for _fe_b in fire_card_effects[:]:
+                if _now_fx_b > _fe_b["end_time"]: fire_card_effects.remove(_fe_b); continue
+                _r_b = _fe_b["card"].rect
+                if not _r_b: continue
+                _rem_b  = _fe_b["end_time"] - _now_fx_b
+                _fade_b = min(1.0, _rem_b / 1.5)
+                _fcnt_b = int(5 * _fade_b) + 1
+                for _ in range(_fcnt_b):
+                    _fx_b  = random.randint(_r_b.left + 4, _r_b.right - 4)
+                    _fy_b  = _r_b.bottom - random.randint(0, 8)
+                    _fvx_b = random.uniform(-0.8, 0.8)
+                    _fvy_b = random.uniform(-3.2, -1.2)
+                    _heat_b = random.random()
+                    _fc_b  = (255, 230, 60) if _heat_b > 0.65 else ((255, 110, 15) if _heat_b > 0.35 else (210, 30, 0))
+                    _fe_b["particles"].append({
+                        "x": float(_fx_b), "y": float(_fy_b),
+                        "vx": _fvx_b, "vy": _fvy_b,
+                        "life": random.randint(20, 40), "max_life": 40,
+                        "color": _fc_b, "size": random.uniform(2.5, 6.0)
                     })
-                # Оновлення та рендер частинок
-                for _fp in _fe["particles"][:]:
-                    _fp["x"] += _fp["vx"]
-                    _fp["y"] += _fp["vy"]
-                    _fp["vy"] -= 0.18
-                    _fp["vx"] *= 0.94
-                    _fp["life"] -= 1
-                    if _fp["life"] <= 0:
-                        _fe["particles"].remove(_fp); continue
-                    _ratio = _fp["life"] / _fp["max_life"] * _fade
-                    _s = max(1, int(_fp["size"] * _ratio))
-                    _alpha_col = tuple(min(255, int(c * _ratio * 1.4)) for c in _fp["color"])
-                    pygame.draw.circle(screen, _alpha_col,
-                                       (int(_fp["x"]), int(_fp["y"])), _s)
-                # Пульсуюча вогняна рамка знизу карти
-                _pulse = abs(math.sin(_now * 9)) * _fade
-                _rim_w = 3 + int(3 * _pulse)
-                _rim_c = (255, int(60 + 100 * _pulse), 0)
-                # Нижня горизонтальна лінія (рамка низу)
-                _bot_y = _r.bottom
-                pygame.draw.line(screen, _rim_c,
-                                 (_r.left + 6,  _bot_y - 1),
-                                 (_r.right - 6, _bot_y - 1), _rim_w)
-                pygame.draw.line(screen, _rim_c,
-                                 (_r.left + 6,  _bot_y - 1 - _rim_w),
-                                 (_r.right - 6, _bot_y - 1 - _rim_w), max(1, _rim_w - 1))
-                # Бокові вертикальні смуги (нижня третина карти)
-                _side_top = _r.top + (_r.height * 2 // 3)
-                pygame.draw.line(screen, _rim_c,
-                                 (_r.left + 1, _side_top), (_r.left + 1, _bot_y - 4), _rim_w)
-                pygame.draw.line(screen, _rim_c,
-                                 (_r.right - 2, _side_top), (_r.right - 2, _bot_y - 4), _rim_w)
+                for _fp_b in _fe_b["particles"][:]:
+                    _fp_b["x"] += _fp_b["vx"]; _fp_b["y"] += _fp_b["vy"]
+                    _fp_b["vy"] -= 0.18; _fp_b["vx"] *= 0.94; _fp_b["life"] -= 1
+                    if _fp_b["life"] <= 0: _fe_b["particles"].remove(_fp_b); continue
+                    _rat_b = _fp_b["life"] / _fp_b["max_life"] * _fade_b
+                    _s_b = max(1, int(_fp_b["size"] * _rat_b))
+                    _ac_b = tuple(min(255, int(c * _rat_b * 1.4)) for c in _fp_b["color"])
+                    pygame.draw.circle(screen, _ac_b, (int(_fp_b["x"]), int(_fp_b["y"])), _s_b)
+                _pulse_b2  = abs(math.sin(_now_fx_b * 9)) * _fade_b
+                _rim_w_b   = 3 + int(3 * _pulse_b2)
+                _rim_c_b   = (255, int(60 + 100 * _pulse_b2), 0)
+                pygame.draw.line(screen, _rim_c_b, (_r_b.left + 6, _r_b.bottom - 1), (_r_b.right - 6, _r_b.bottom - 1), _rim_w_b)
+                pygame.draw.line(screen, _rim_c_b, (_r_b.left + 1, _r_b.top + _r_b.height * 2 // 3),
+                                 (_r_b.left + 1, _r_b.bottom - 4), _rim_w_b)
+                pygame.draw.line(screen, _rim_c_b, (_r_b.right - 2, _r_b.top + _r_b.height * 2 // 3),
+                                 (_r_b.right - 2, _r_b.bottom - 4), _rim_w_b)
 
             # Показ смішної фрази
             if battle_phrase and time.time() - battle_phrase_timer < 2.5:
@@ -8632,6 +8630,12 @@ class Game:
                 # Назва
                 ns2 = font_small.render(tname, True, tcol if owned else GRAY)
                 screen.blit(ns2, (cx2+TIW//2-ns2.get_width()//2, cy2+TIH-46))
+                # Рівень Титана (тільки якщо придбано)
+                if owned:
+                    tlv = self.titan_levels.get(tid, 1)
+                    lv_col = GOLD if tid == self.titan_id else (180, 180, 180)
+                    lv_s = font_small.render(f"Рівень: {tlv}", True, lv_col)
+                    screen.blit(lv_s, (cx2+TIW//2-lv_s.get_width()//2, cy2+TIH-62))
                 # Кнопка — тільки осколки, алмази заборонені
                 if owned:
                     btn_col = (30,130,30) if tid==self.titan_id else (50,80,50)
@@ -11542,7 +11546,11 @@ class Game:
                     clone_m.name = f"Міраж:{monster.name[:8]}"
                     clone_m.is_monster = False
                     max_c = get_titan_max_cards(self.titan_level)
-                    if len(self.army) < max_c: self.army.append(clone_m)
+                    army_lim_m = get_titan_army_limit(self.titan_level)
+                    cur_pts_m = sum(get_titan_card_points(c) for c in self.army)
+                    clone_m_pts = get_titan_card_points(clone_m)
+                    if len(self.army) < max_c and cur_pts_m + clone_m_pts <= army_lim_m:
+                        self.army.append(clone_m)
                     spawn_ability_effect(name, hcx, hcy, hcx, hcy)
                     extra_phrase = f"🪞 Дзеркало: клон {clone_m.name} призваний!"
                 # Баф: Сигнал Авангарду
