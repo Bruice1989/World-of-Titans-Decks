@@ -4710,6 +4710,7 @@ class Game:
         self.titan_level    = 1          # поточний рівень активного Титана
         self.titan_levels   = {"titan_1": 1}  # рівні кожного Титана окремо
         self.titan_xp       = 0          # досвід Титана
+        self.titan_xp_levels= {"titan_1": 0}  # XP кожного Титана окремо
         self.titan_id       = "titan_1"  # поточний активний Титан
         self.owned_titans   = ["titan_1"]# куплені титани
         self.titan_gif_frame= 0          # кадр GIF анімації
@@ -5147,9 +5148,13 @@ class Game:
             # ── Вівтар ───────────────────────────────────────────────────
             "altar_last_draw_time": self.altar_last_draw_time,
             # ── Тітани ───────────────────────────────────────────────────
+            # Синхронізуємо поточний рівень у словник перед збереженням
             "titan_level":        self.titan_level,
             "titan_xp":           self.titan_xp,
-            "titan_levels":       self.titan_levels,
+            "titan_levels":       {**getattr(self, "titan_levels", {}),
+                                   self.titan_id: self.titan_level},
+            "titan_xp_levels":    {**getattr(self, "titan_xp_levels", {}),
+                                   self.titan_id: self.titan_xp},
             "titan_id":           self.titan_id,
             "owned_titans":       self.owned_titans,
             "titan_shards":       self.titan_shards,
@@ -5302,11 +5307,19 @@ class Game:
             self.altar_last_draw_time = data.get("altar_last_draw_time", 0)
 
             # ── Тітани ────────────────────────────────────────────────────
-            self.titan_level        = data.get("titan_level", 1)
-            self.titan_xp           = data.get("titan_xp", 0)
             self.titan_levels       = data.get("titan_levels", {"titan_1": 1})
+            self.titan_xp_levels    = data.get("titan_xp_levels", {})
             self.titan_id           = data.get("titan_id", "titan_1")
             self.owned_titans       = data.get("owned_titans", ["titan_1"])
+            # titan_level завжди береться зі словника titan_levels для поточного titan_id
+            # (щоб уникнути десинхронізації між полем і словником)
+            _saved_level = data.get("titan_level", 1)
+            self.titan_level = self.titan_levels.get(self.titan_id, _saved_level)
+            # Синхронізуємо назад у словник на випадок старого збереження
+            self.titan_levels[self.titan_id] = self.titan_level
+            self.titan_xp           = self.titan_xp_levels.get(self.titan_id,
+                                        data.get("titan_xp", 0))
+            self.titan_xp_levels[self.titan_id] = self.titan_xp
             self.titan_shards       = data.get("titan_shards", {})
             self.titan_refresh_time = data.get("titan_refresh_time", {})
             self.titan_monster_hp   = data.get("titan_monster_hp", {})
@@ -6832,13 +6845,15 @@ class Game:
                             self.titan_levels[tid] = 1  # новий Титан з рівня 1
                             self.save_game()
                     elif tdata and tid in self.owned_titans:
-                        # Зберегти рівень поточного Титана
+                        # Зберегти рівень та XP поточного Титана
                         self.titan_levels[self.titan_id] = self.titan_level
+                        self.titan_xp_levels[self.titan_id] = self.titan_xp
                         self.titan_id = tid
-                        # Відновити рівень нового
+                        # Відновити рівень та XP нового Титана
                         self.titan_level = self.titan_levels.get(tid, 1)
-                        self.titan_xp = 0
+                        self.titan_xp = self.titan_xp_levels.get(tid, 0)
                         self.state = TITAN_STATE
+                        self.save_game()
                     break
 
         elif self.state == TITAN_MONSTERS:
@@ -7397,7 +7412,16 @@ class Game:
             # Клік по іменах Титанів що в owned — перемикання активного
             for tid, (nr, _) in getattr(self, "titan_name_rects", {}).items():
                 if nr.collidepoint(pos) and tid in self.owned_titans:
-                    self.titan_id = tid; break
+                    # Зберегти рівень та XP поточного Титана
+                    self.titan_levels[self.titan_id] = self.titan_level
+                    self.titan_xp_levels[self.titan_id] = self.titan_xp
+                    # Переключити на новий Титан
+                    self.titan_id = tid
+                    # Відновити рівень та XP нового Титана
+                    self.titan_level = self.titan_levels.get(tid, 1)
+                    self.titan_xp = self.titan_xp_levels.get(tid, 0)
+                    self.save_game()
+                    break
 
         elif self.state == GAME_OVER:
             if self.btn_back.collidepoint(pos):
@@ -11227,6 +11251,8 @@ class Game:
                     self.titan_level += 1
                     self.titan_levels[self.titan_id] = self.titan_level
                     self.titan_xp = 0
+                # Синхронізуємо XP поточного Титана в словник
+                self.titan_xp_levels[self.titan_id] = self.titan_xp
                 if self.is_titan_monster_battle:
                     tid = self.selected_titan_monster
                     self.titan_shards[tid] = self.titan_shards.get(tid, 0) + 10
